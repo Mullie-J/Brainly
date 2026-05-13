@@ -1,17 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  Moon,
-  X,
-  CheckCircle2,
-  Circle,
-  Plus,
-  ArrowRight,
-  GripVertical,
-} from 'lucide-react';
-import { addDays, format } from 'date-fns';
+import { Moon, X, ArrowRight } from 'lucide-react';
+import { addDays, format, isToday, parseISO } from 'date-fns';
+import { nl } from 'date-fns/locale';
+import { clsx } from 'clsx';
 import { useDailyPlan, useUpsertDailyPlan } from '@/hooks/useDailyPlan';
-import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
+import { useTodos } from '@/hooks/useTodos';
 
 interface Props {
   open: boolean;
@@ -20,6 +14,13 @@ interface Props {
 
 const MAX = 3;
 
+function formatMin(m: number): string {
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `${h}u ${rem}m` : `${h}u`;
+}
+
 export default function ShutdownModal({ open, onClose }: Props) {
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
@@ -27,37 +28,74 @@ export default function ShutdownModal({ open, onClose }: Props) {
   const { data: todayPlan } = useDailyPlan(todayStr);
   const upsert = useUpsertDailyPlan();
   const { data: allTodos = [] } = useTodos();
-  const updateTodo = useUpdateTodo();
   const navigate = useNavigate();
 
   const [reflection, setReflection] = useState('');
+  const [letGo, setLetGo] = useState('');
   const [tomorrowTop3, setTomorrowTop3] = useState<string[]>([]);
-  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     if (open && todayPlan) {
       setReflection(todayPlan.shutdown_note ?? '');
       setTomorrowTop3(todayPlan.next_day_top3 ?? []);
+      setLetGo('');
     } else if (open) {
       setReflection('');
       setTomorrowTop3([]);
+      setLetGo('');
     }
   }, [open, todayPlan?.id]);
 
-  if (!open) return null;
+  // Stats
+  const completedToday = useMemo(
+    () =>
+      allTodos.filter(
+        (t) => t.completed_at && isToday(parseISO(t.completed_at))
+      ),
+    [allTodos]
+  );
+  const doingCount = useMemo(
+    () => allTodos.filter((t) => t.status === 'doing').length,
+    [allTodos]
+  );
+  const focusMin = useMemo(
+    () => completedToday.reduce((sum, t) => sum + (t.effort_min ?? 0), 0),
+    [completedToday]
+  );
 
-  const todayTop3Todos = (todayPlan?.top3_todo_ids ?? [])
+  // Suggestions: open todos sorted by priority, max 8 for the pill list
+  const suggestions = useMemo(
+    () =>
+      allTodos
+        .filter((t) => t.status !== 'done' && !tomorrowTop3.includes(t.id))
+        .sort((a, b) => a.priority - b.priority)
+        .slice(0, 8),
+    [allTodos, tomorrowTop3]
+  );
+
+  // Currently picked tomorrow todos (resolved to full Todo objects)
+  const picked = tomorrowTop3
     .map((id) => allTodos.find((t) => t.id === id))
     .filter((t): t is NonNullable<typeof t> => !!t);
 
-  const pickable = allTodos.filter(
-    (t) => t.status !== 'done' && !tomorrowTop3.includes(t.id)
-  );
+  if (!open) return null;
+
+  function addToTomorrow(id: string) {
+    if (tomorrowTop3.includes(id) || tomorrowTop3.length >= MAX) return;
+    setTomorrowTop3([...tomorrowTop3, id]);
+  }
+
+  function removeFromTomorrow(id: string) {
+    setTomorrowTop3(tomorrowTop3.filter((x) => x !== id));
+  }
 
   async function commit() {
+    const combinedReflection = [reflection.trim(), letGo.trim() ? `\nLaat los: ${letGo.trim()}` : '']
+      .filter(Boolean)
+      .join('');
     await upsert.mutateAsync({
       date: todayStr,
-      shutdown_note: reflection.trim() || null,
+      shutdown_note: combinedReflection || null,
       next_day_top3: tomorrowTop3,
     });
     if (tomorrowTop3.length > 0) {
@@ -75,7 +113,9 @@ export default function ShutdownModal({ open, onClose }: Props) {
       <div className="sd" onClick={(e) => e.stopPropagation()}>
         <div className="sd-head">
           <div>
-            <div className="qa-eyebrow">// shutdown · {format(today, 'd MMM')}</div>
+            <div className="qa-eyebrow">
+              // shutdown · {format(today, 'EEEE d MMMM yyyy', { locale: nl })}
+            </div>
             <h2 className="sd-title">Sluit de dag af</h2>
           </div>
           <button onClick={onClose} className="btn btn-ghost" aria-label="Sluit">
@@ -83,162 +123,108 @@ export default function ShutdownModal({ open, onClose }: Props) {
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <section>
-            <h3 className="section-title">Vandaag's Top 3 — terugblik</h3>
-            {todayTop3Todos.length === 0 ? (
-              <p className="text-sm text-muted italic">
-                Geen Top 3 ingevuld vandaag.
-              </p>
-            ) : (
-              <div className="space-y-1.5">
-                {todayTop3Todos.map((t, i) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center gap-2.5 text-sm px-3 py-2 bg-surface2/40 rounded-md"
-                  >
-                    <button
-                      onClick={() =>
-                        updateTodo.mutate({
-                          id: t.id,
-                          patch: { status: t.status === 'done' ? 'todo' : 'done' },
-                        })
-                      }
-                      className="shrink-0"
-                    >
-                      {t.status === 'done' ? (
-                        <CheckCircle2 size={15} className="text-accent" />
-                      ) : (
-                        <Circle size={15} className="text-muted" />
-                      )}
-                    </button>
-                    <span className="text-[10px] text-muted shrink-0">
-                      #{i + 1}
-                    </span>
-                    <span
-                      className={
-                        t.status === 'done' ? 'line-through text-muted' : ''
-                      }
-                    >
-                      {t.title}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="sd-q">
-            <label>Wat ging goed · wat houdt je morgen vast?</label>
-            <textarea
-              value={reflection}
-              onChange={(e) => setReflection(e.target.value)}
-              placeholder="2 zinnen is genoeg."
-              rows={3}
-            />
-          </section>
-
-          <section>
-            <h3 className="section-title">Morgen — kies je Top 3</h3>
-            <div className="space-y-1.5">
-              {Array.from({ length: MAX }).map((_, i) => {
-                const id = tomorrowTop3[i];
-                const t = id ? allTodos.find((x) => x.id === id) : null;
-                if (!t) {
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => setPicking(true)}
-                      disabled={pickable.length === 0}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-md border border-dashed border-border text-sm text-muted hover:text-text hover:border-accent/50 transition-colors disabled:opacity-50"
-                    >
-                      <span className="w-5 h-5 rounded-full border border-dashed border-muted flex items-center justify-center text-[10px]">
-                        {i + 1}
-                      </span>
-                      <Plus size={13} />
-                      <span>Kies #{i + 1}</span>
-                    </button>
-                  );
-                }
-                return (
-                  <div
-                    key={t.id}
-                    className="group flex items-center gap-3 px-3 py-2 bg-surface border border-border rounded-md text-sm"
-                  >
-                    <span className="w-5 h-5 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-semibold shrink-0">
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 truncate">{t.title}</span>
-                    <button
-                      onClick={() =>
-                        setTomorrowTop3(tomorrowTop3.filter((x) => x !== t.id))
-                      }
-                      className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-500"
-                      aria-label="Verwijder"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <div className="sd-foot" style={{ justifyContent: 'space-between' }}>
-            <Link to="/agenda" onClick={onClose} className="muted-text" style={{ fontSize: 12 }}>
-              Open agenda →
-            </Link>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={onClose} className="btn btn-ghost">
-                Later
-              </button>
-              <button
-                onClick={commit}
-                disabled={upsert.isPending}
-                className="btn btn-primary"
-              >
-                <Moon size={13} /> Sluit dag af <ArrowRight size={13} />
-              </button>
-            </div>
+        <div className="sd-stats">
+          <div className="sd-stat">
+            <span className="tabular sd-num">{completedToday.length}</span>
+            <span className="sd-l">afgewerkt</span>
+          </div>
+          <div className="sd-stat">
+            <span className="tabular sd-num">{doingCount}</span>
+            <span className="sd-l">in uitvoering</span>
+          </div>
+          <div className="sd-stat">
+            <span className="tabular sd-num">
+              {focusMin > 0 ? formatMin(focusMin) : '—'}
+            </span>
+            <span className="sd-l">gefocust</span>
           </div>
         </div>
-      </div>
 
-      {/* Picker */}
-      {picking && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/30 flex items-start justify-center pt-24 px-4"
-          onClick={() => setPicking(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-surface rounded-xl border border-border shadow-xl overflow-hidden"
-          >
-            <div className="px-4 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold">Kies een to-do voor morgen</h3>
-            </div>
-            <div className="max-h-[400px] overflow-y-auto py-1">
-              {pickable.length === 0 && (
-                <p className="text-sm text-muted px-4 py-3">Geen open to-do's.</p>
-              )}
-              {pickable.slice(0, 50).map((t) => (
+        <div className="sd-q">
+          <label>Wat liep door vandaag?</label>
+          <textarea
+            value={reflection}
+            onChange={(e) => setReflection(e.target.value)}
+            placeholder="Een gedachte, een spanning, een onafgemaakte taak..."
+            rows={2}
+          />
+        </div>
+
+        <div className="sd-q">
+          <label>Wat is morgen het belangrijkste?</label>
+          {picked.length > 0 && (
+            <div className="sd-suggestions" style={{ marginBottom: 6 }}>
+              {picked.map((t, i) => (
                 <button
                   key={t.id}
-                  onClick={() => {
-                    setTomorrowTop3([...tomorrowTop3, t.id].slice(0, MAX));
-                    setPicking(false);
+                  onClick={() => removeFromTomorrow(t.id)}
+                  className="sd-sug"
+                  style={{
+                    background: 'var(--accent-soft)',
+                    borderColor: 'rgb(var(--accent-rgb) / 0.4)',
+                    color: 'var(--accent)',
                   }}
-                  disabled={tomorrowTop3.length >= MAX}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-surface2 transition-colors text-left disabled:opacity-50"
+                  title="Verwijder uit morgen's Top 3"
                 >
-                  <GripVertical size={13} className="text-muted shrink-0" />
-                  <span className="flex-1 truncate">{t.title}</span>
+                  <span className="tabular" style={{ marginRight: 4, fontWeight: 600 }}>
+                    {i + 1}.
+                  </span>
+                  {t.title}
+                  <X size={10} style={{ marginLeft: 4 }} />
                 </button>
               ))}
             </div>
+          )}
+          {picked.length < MAX && (
+            <div className="sd-suggestions">
+              {suggestions.length === 0 ? (
+                <p className="muted-text" style={{ fontSize: 12, fontStyle: 'italic' }}>
+                  Geen open to-do's om uit te kiezen.
+                </p>
+              ) : (
+                suggestions.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => addToTomorrow(t.id)}
+                    disabled={tomorrowTop3.length >= MAX}
+                    className={clsx('sd-sug')}
+                  >
+                    {t.title}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="sd-q">
+          <label>Wat laat je los?</label>
+          <textarea
+            value={letGo}
+            onChange={(e) => setLetGo(e.target.value)}
+            placeholder="Iets dat je nu niet meer kan oplossen..."
+            rows={2}
+          />
+        </div>
+
+        <div className="sd-foot" style={{ justifyContent: 'space-between' }}>
+          <Link to="/agenda" onClick={onClose} className="muted-text" style={{ fontSize: 12 }}>
+            Open agenda →
+          </Link>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={onClose} className="btn btn-ghost">
+              Later
+            </button>
+            <button
+              onClick={commit}
+              disabled={upsert.isPending}
+              className="btn btn-primary"
+            >
+              <Moon size={13} /> Sluit af <ArrowRight size={13} />
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

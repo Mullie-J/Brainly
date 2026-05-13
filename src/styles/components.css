@@ -357,6 +357,136 @@
 }
 
 /* =====================================================================
+   Today · Timeline (TIJDLIJN VANDAAG)
+   ===================================================================== */
+.t-timeline { margin: 0 0 24px; }
+.t-timeline-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 10px;
+}
+.t-timeline-now { font-size: 11px; white-space: nowrap; font-family: var(--font-mono); color: rgb(var(--muted)); }
+.t-timeline-list {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.tl-item {
+  display: grid;
+  grid-template-columns: 64px 16px 1fr auto;
+  align-items: stretch;
+  gap: 12px;
+  padding: 8px 12px 8px 4px;
+  border-radius: var(--radius);
+  transition: background .12s;
+}
+.tl-item:hover { background: rgb(var(--surface-2) / 0.5); }
+.tl-time { display: flex; flex-direction: column; gap: 1px; justify-content: center; min-width: 0; }
+.tl-start { font-size: 13px; color: rgb(var(--text-strong)); font-weight: 500; font-family: var(--font-mono); }
+.tl-dur { font-size: 10.5px; color: rgb(var(--muted-2)); font-family: var(--font-mono); }
+.tl-rail { position: relative; display: flex; justify-content: center; }
+.tl-dot {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  left: 50%;
+  width: 9px; height: 9px; border-radius: 999px;
+  background: rgb(var(--surface));
+  border: 2px solid rgb(var(--border-strong));
+  z-index: 1;
+}
+.tl-line {
+  position: absolute; top: 50%; left: 50%; transform: translateX(-50%);
+  width: 2px; height: calc(100% + 2px);
+  background: rgb(var(--border));
+}
+.tl-item.tl-past .tl-dot { background: rgb(var(--muted)); border-color: rgb(var(--muted)); opacity: 0.45; }
+.tl-item.tl-past .tl-line { opacity: 0.5; }
+.tl-item.tl-past .tl-title { color: rgb(var(--muted)); }
+.tl-item.tl-past .tl-start { color: rgb(var(--muted)); font-weight: 400; }
+.tl-item.tl-now .tl-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / 0.2);
+}
+.tl-item.tl-now { background: var(--accent-soft); }
+.tl-item.tl-now .tl-start { color: var(--accent); }
+.tl-item.tl-next .tl-dot { border-color: var(--accent); }
+.tl-body {
+  display: flex; align-items: center; gap: 10px;
+  text-align: left; min-width: 0; flex: 1;
+  padding: 2px 0;
+  background: transparent;
+}
+.tl-marker { display: inline-flex; align-items: center; flex-shrink: 0; }
+.tl-badge {
+  font-family: var(--font-mono);
+  font-size: 9.5px; letter-spacing: 0.04em;
+  padding: 2px 6px; border-radius: 4px;
+  text-transform: lowercase;
+}
+.tl-badge-now { background: var(--accent); color: var(--accent-fg); }
+.tl-badge-next {
+  background: rgb(var(--surface-2));
+  color: rgb(var(--muted));
+  border: 1px solid rgb(var(--border));
+}
+.tl-title {
+  flex: 1; min-width: 0;
+  font-size: 13.5px; color: rgb(var(--text-strong));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tl-meta { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.tl-check { flex-shrink: 0; align-self: center; }
+
+@media (max-width: 540px) {
+  .tl-item { grid-template-columns: 56px 14px 1fr auto; gap: 8px; padding: 8px 6px; }
+}
+
+/* =====================================================================
+   Today · Focus footer
+   ===================================================================== */
+.focus-footer {
+  margin-top: 40px;
+  padding: 18px 22px;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 28px;
+  align-items: center;
+  border-top: 1px solid rgb(var(--border));
+}
+.ff-cell { display: flex; flex-direction: column; gap: 2px; }
+.ff-cell-warn .ff-num { color: rgb(var(--rose)); }
+.ff-num {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: rgb(var(--text-strong));
+  font-variant-numeric: tabular-nums;
+}
+.ff-label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: rgb(var(--muted));
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.ff-quote {
+  font-size: 13px;
+  color: rgb(var(--muted));
+  line-height: 1.5;
+  max-width: 48ch;
+}
+.ff-tag {
+  color: var(--accent);
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .focus-footer { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .ff-quote { grid-column: 1 / -1; }
+}
+
+/* =====================================================================
    Rows + badges
    ===================================================================== */
 :root {

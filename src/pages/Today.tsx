@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Flame,
   Repeat,
+  Clock,
 } from 'lucide-react';
 import {
   format,
@@ -43,6 +44,11 @@ function formatMin(m: number): string {
   const h = Math.floor(m / 60);
   const rem = m % 60;
   return rem ? `${h}u${rem}` : `${h}u`;
+}
+
+function parseTimeToMin(s: string): number {
+  const [h, m] = s.split(':').map(Number);
+  return h * 60 + (m || 0);
 }
 
 export default function Today() {
@@ -86,13 +92,26 @@ export default function Today() {
 
   const dueToday = todos.filter(
     (t) =>
-      t.status !== 'done' &&
-      t.due_date &&
-      isToday(parseISO(t.due_date))
+      t.status !== 'done' && t.due_date && isToday(parseISO(t.due_date))
   );
+  // Split into timed (timeline) and untimed (list)
+  const dueTodayTimed = dueToday
+    .filter((t) => t.start_time)
+    .sort((a, b) => (a.start_time ?? '').localeCompare(b.start_time ?? ''));
+  const dueTodayUntimed = dueToday
+    .filter((t) => !t.start_time)
+    .sort((a, b) => a.priority - b.priority);
+
   const doing = todos.filter((t) => t.status === 'doing');
   const completedToday = todos.filter(
     (t) => t.completed_at && isToday(parseISO(t.completed_at))
+  );
+
+  // Focus footer stats
+  const focusMin = useMemo(
+    () =>
+      completedToday.reduce((sum, t) => sum + (t.effort_min ?? 0), 0),
+    [completedToday]
   );
 
   return (
@@ -138,19 +157,18 @@ export default function Today() {
 
       <Top3 date={today} />
 
-      {doing.length > 0 && (
-        <TodaySection title="In uitvoering" badge={doing.length}>
-          <div className="row-list">
-            {doing.map((t) => (
-              <TodoRow
-                key={t.id}
-                todo={t}
-                project={t.project_id ? projectMap.get(t.project_id) : null}
-                update={update}
-              />
-            ))}
-          </div>
-        </TodaySection>
+      {dueTodayTimed.length > 0 && (
+        <Timeline
+          items={dueTodayTimed}
+          now={today}
+          projectMap={projectMap}
+          onToggle={(id, status) =>
+            update.mutate({
+              id,
+              patch: { status: status === 'done' ? 'todo' : 'done' },
+            })
+          }
+        />
       )}
 
       {overdue.length > 0 && (
@@ -174,17 +192,19 @@ export default function Today() {
       )}
 
       <TodaySection
-        title="Vandaag"
-        badge={dueToday.length}
+        title={dueTodayTimed.length > 0 ? 'Vandaag — verder' : 'Vandaag'}
+        badge={dueTodayUntimed.length}
         empty={
-          overdue.length === 0 && doing.length === 0 && dueToday.length === 0
+          overdue.length === 0 &&
+          dueTodayTimed.length === 0 &&
+          dueTodayUntimed.length === 0
             ? 'Geen open taken voor vandaag — adem rustig.'
             : undefined
         }
       >
-        {dueToday.length > 0 && (
+        {dueTodayUntimed.length > 0 && (
           <div className="row-list">
-            {dueToday.map((t) => (
+            {dueTodayUntimed.map((t) => (
               <TodoRow
                 key={t.id}
                 todo={t}
@@ -211,8 +231,122 @@ export default function Today() {
         </TodaySection>
       )}
 
+      <FocusFooter
+        doing={doing.length}
+        done={completedToday.length}
+        overdue={overdue.length}
+        focusMin={focusMin}
+      />
+
       <ShutdownModal open={shutdownOpen} onClose={() => setShutdownOpen(false)} />
     </div>
+  );
+}
+
+function Timeline({
+  items,
+  now,
+  projectMap,
+  onToggle,
+}: {
+  items: Todo[];
+  now: Date;
+  projectMap: Map<string, any>;
+  onToggle: (id: string, status: Todo['status']) => void;
+}) {
+  const openTodo = useUI((s) => s.openTodo);
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  // First non-past item = "next"
+  const firstUpcoming = items.findIndex((t) => {
+    if (!t.start_time) return false;
+    const startMin = parseTimeToMin(t.start_time);
+    const endMin = startMin + (t.duration_min ?? 30);
+    return endMin > nowMin;
+  });
+
+  return (
+    <section className="t-timeline">
+      <div className="t-timeline-head">
+        <h2 className="section-title">
+          <Clock size={12} />
+          Tijdlijn vandaag
+          <span className="section-count tabular">{items.length}</span>
+        </h2>
+        <span className="t-timeline-now">
+          nu · {String(now.getHours()).padStart(2, '0')}:
+          {String(now.getMinutes()).padStart(2, '0')}
+        </span>
+      </div>
+      <ol className="t-timeline-list">
+        {items.map((t, i) => {
+          const startMin = parseTimeToMin(t.start_time!);
+          const endMin = startMin + (t.duration_min ?? 30);
+          const isPastItem = endMin <= nowMin;
+          const isNow = startMin <= nowMin && nowMin < endMin;
+          const isNext = !isNow && !isPastItem && i === firstUpcoming;
+          const project = t.project_id ? projectMap.get(t.project_id) : null;
+          return (
+            <li
+              key={t.id}
+              className={clsx(
+                'tl-item',
+                isPastItem && 'tl-past',
+                isNow && 'tl-now',
+                isNext && 'tl-next'
+              )}
+            >
+              <div className="tl-time">
+                <span className="tabular tl-start">{t.start_time}</span>
+                {t.duration_min && (
+                  <span className="tl-dur">{formatMin(t.duration_min)}</span>
+                )}
+              </div>
+              <div className="tl-rail">
+                <span className="tl-dot" />
+                {i < items.length - 1 && <span className="tl-line" />}
+              </div>
+              <button onClick={() => openTodo(t.id)} className="tl-body">
+                <span className="tl-marker">
+                  {isNow && <span className="tl-badge tl-badge-now">nu</span>}
+                  {isNext && <span className="tl-badge tl-badge-next">straks</span>}
+                </span>
+                <span className={clsx('tl-title', t.status === 'done' && 'strike')}>
+                  {t.title}
+                </span>
+                <span className="tl-meta">
+                  <PriorityBadge priority={t.priority} />
+                  {project && (
+                    <span className="proj-chip">
+                      <span
+                        className="proj-swatch"
+                        style={{ background: 'var(--accent)' }}
+                      />
+                      <span className="proj-chip-label">{project.title}</span>
+                    </span>
+                  )}
+                  {t.status === 'doing' && <span className="meta-doing">· bezig</span>}
+                </span>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggle(t.id, t.status);
+                }}
+                className="check tl-check"
+                aria-label="Afvinken"
+              >
+                {t.status === 'done' ? (
+                  <CheckCircle2 size={15} />
+                ) : (
+                  <Circle size={15} />
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -314,5 +448,46 @@ function TodoRow({
         </span>
       </button>
     </div>
+  );
+}
+
+function FocusFooter({
+  doing,
+  done,
+  overdue,
+  focusMin,
+}: {
+  doing: number;
+  done: number;
+  overdue: number;
+  focusMin: number;
+}) {
+  return (
+    <footer className="focus-footer">
+      {overdue > 0 ? (
+        <div className="ff-cell ff-cell-warn">
+          <div className="ff-num tabular">{overdue}</div>
+          <div className="ff-label">overtijd</div>
+        </div>
+      ) : (
+        <div className="ff-cell">
+          <div className="ff-num tabular">{doing}</div>
+          <div className="ff-label">in uitvoering</div>
+        </div>
+      )}
+      <div className="ff-cell">
+        <div className="ff-num tabular">{done}</div>
+        <div className="ff-label">afgewerkt vandaag</div>
+      </div>
+      <div className="ff-cell ff-quote">
+        <span className="ff-tag">// shutdown</span>
+        <span>
+          {focusMin > 0
+            ? `${formatMin(focusMin)} gefocust werk. `
+            : ''}
+          Sluit de dag af met drie regels — wat liep, wat blijft, wat morgen.
+        </span>
+      </div>
+    </footer>
   );
 }
