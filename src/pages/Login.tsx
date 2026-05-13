@@ -10,6 +10,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [codeMode, setCodeMode] = useState(false);   // Direct code-entry (bypass new send)
 
   async function submitMagicLink(e: React.FormEvent) {
     e.preventDefault();
@@ -66,14 +67,25 @@ export default function Login() {
           Voer je e-mail in. We sturen je een 6-cijferige code én een magic link.
         </p>
 
-        {status === 'sent' || status === 'verifying' ? (
+        {status === 'sent' || status === 'verifying' || codeMode ? (
           <>
             <div className="rounded-lg border border-border bg-surface p-4 text-sm mb-4">
-              <p className="font-medium mb-1">Check je inbox</p>
+              <p className="font-medium mb-1">
+                {codeMode && status !== 'sent' ? 'Typ je code' : 'Check je inbox'}
+              </p>
               <p className="text-muted">
-                We hebben een mail gestuurd naar{' '}
-                <span className="text-text">{email}</span>. Typ de 6-cijferige
-                code hieronder — dat werkt het beste in deze app.
+                {codeMode && status !== 'sent' ? (
+                  <>
+                    Heb je een code uit een eerdere magic-link mail naar{' '}
+                    <span className="text-text">{email}</span>? Typ 'm hier.
+                  </>
+                ) : (
+                  <>
+                    We hebben een mail gestuurd naar{' '}
+                    <span className="text-text">{email}</span>. Typ de 6-cijferige
+                    code hieronder — dat werkt het beste in deze app.
+                  </>
+                )}
               </p>
             </div>
 
@@ -118,6 +130,7 @@ export default function Login() {
                 setStatus('idle');
                 setCode('');
                 setError(null);
+                setCodeMode(false);
               }}
               className="mt-4 text-xs text-muted hover:text-text transition-colors"
             >
@@ -155,10 +168,22 @@ export default function Login() {
               )}
             </button>
             {error && <p className="text-sm text-red-500">{error}</p>}
+            <button
+              type="button"
+              onClick={() => {
+                if (!email) return;
+                setCodeMode(true);
+                setError(null);
+              }}
+              disabled={!email}
+              className="w-full text-xs text-muted hover:text-text transition-colors pt-2 disabled:opacity-40"
+            >
+              Heb al een code uit een eerdere mail? Typ 'm hier →
+            </button>
           </form>
         )}
 
-        {import.meta.env.DEV && status !== 'sent' && status !== 'verifying' && (
+        {import.meta.env.DEV && status !== 'sent' && status !== 'verifying' && !codeMode && (
           <div className="mt-6 pt-6 border-t border-border">
             {!showPassword ? (
               <button
