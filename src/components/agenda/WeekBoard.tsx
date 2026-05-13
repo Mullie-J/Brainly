@@ -64,6 +64,15 @@ export default function WeekBoard() {
   // Werk = Mon-Fri (weekend is "Later"). Privé = Mon-Sun (weekend telt voor privé).
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart]);
 
+  // Sort: open by priority, then done last so they collapse at the
+  // bottom of each day cell as a "completed today" trail.
+  const sortByOpenThenDone = (a: Todo, b: Todo) => {
+    if ((a.status === 'done') !== (b.status === 'done')) {
+      return a.status === 'done' ? 1 : -1;
+    }
+    return a.priority - b.priority;
+  };
+
   const workDays = useMemo(
     () =>
       Array.from({ length: 5 }, (_, i) => {
@@ -76,10 +85,9 @@ export default function WeekBoard() {
             .filter(
               (t) =>
                 t.due_date === dateStr &&
-                t.status !== 'done' &&
                 t.scope !== 'personal'
             )
-            .sort((a, b) => a.priority - b.priority),
+            .sort(sortByOpenThenDone),
         };
       }),
     [weekStart, allTodos]
@@ -97,10 +105,9 @@ export default function WeekBoard() {
             .filter(
               (t) =>
                 t.due_date === dateStr &&
-                t.status !== 'done' &&
                 t.scope === 'personal'
             )
-            .sort((a, b) => a.priority - b.priority),
+            .sort(sortByOpenThenDone),
         };
       }),
     [weekStart, allTodos]
@@ -494,7 +501,7 @@ function Card({
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    opacity: isDragging ? 0.3 : 1,
+    opacity: isDragging ? 0.3 : todo.status === 'done' ? 0.55 : 1,
   };
 
   const overdue =
