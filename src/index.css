@@ -133,6 +133,46 @@ a,
   user-select: none;
 }
 
+/* Todo display surfaces (cards, rows, kanban, week planner, timeline,
+   top3 slots, projects/notes cards). Selection on these blocks the
+   long-press → context menu on iOS. Buttons get it too — labels in
+   buttons are ornamental, not for copying. */
+.row,
+.kcard,
+.wkp-card,
+.wkp-day-card,
+.tl-item,
+.top3-slot,
+.proj-card,
+.note-card,
+.day-event,
+button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* But keep all text-input surfaces selectable, including BlockNote.
+   Inline styles or buttons-as-inputs that contain editable text should
+   add .selectable to override. */
+input,
+textarea,
+[contenteditable='true'],
+[contenteditable=''],
+.bn-editor,
+.bn-container,
+.ProseMirror,
+.note-tldr,
+.note-body,
+.ns-text,
+.page-sub,
+.proj-card-ns,
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* Focus ring */
 :focus-visible {
   outline: 2px solid rgb(var(--accent-rgb) / 0.6);
