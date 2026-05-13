@@ -1415,6 +1415,175 @@
 .rec-picker-chip:hover { background: rgb(var(--accent-rgb) / 0.16); }
 
 /* =====================================================================
+   Mobile / PWA — safe-area, touch targets, bottom sheets, FAB
+   ===================================================================== */
+
+/* Variables for safe-area insets (Notch / Home indicator on iPhones) */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-right: env(safe-area-inset-right);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+}
+
+/* Mobile topbar: respect notch + sticky so context never disappears */
+@media (max-width: 900px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding-top: calc(8px + var(--safe-top));
+    padding-left: calc(12px + var(--safe-left));
+    padding-right: calc(12px + var(--safe-right));
+    /* Subtle backdrop so it reads as floating over content */
+    backdrop-filter: saturate(180%) blur(8px);
+    background: rgb(var(--surface) / 0.92);
+  }
+  .topbar-menu, .topbar-search {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .topbar-brand { font-size: 15px; }
+
+  /* Page content gets extra bottom padding for FAB + home indicator */
+  .page {
+    padding: 20px 16px calc(120px + var(--safe-bottom));
+  }
+  .page-narrow,
+  .page-wide { max-width: 100%; }
+
+  /* Page header collapses on mobile */
+  .page-title { font-size: 22px; }
+  .page-header { margin-bottom: 20px; }
+  .page-actions {
+    /* Keep secondary actions but reposition primary action via FAB */
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* Hide the page-header primary "+ To-do" button — FAB handles it */
+  .page-header .btn-primary.hide-on-mobile-fab { display: none; }
+
+  /* Bigger row tap targets */
+  .row { min-height: 48px; padding: 12px 14px; }
+  .check { padding: 4px; min-width: 28px; min-height: 28px; }
+
+  /* Kanban: better card touch targets */
+  .kcard { padding: 12px; min-height: 56px; }
+
+  /* Sidebar (drawer) — safe top/bottom padding */
+  .app-sidebar-wrap { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+  .sb-item, .sb-proj, .sb-quick-btn, .sb-search {
+    min-height: 40px;
+  }
+  .sb-close { min-width: 44px; min-height: 44px; }
+
+  /* Bottom sheets: drawers / modals slide up from bottom */
+  .td-shroud {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+  .td {
+    width: 100% !important;
+    height: 92vh;
+    max-height: 92vh;
+    border-left: none;
+    border-top: 1px solid rgb(var(--border));
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 12px 20px calc(20px + var(--safe-bottom));
+    animation: sheet-up .25s ease;
+  }
+  .td-head {
+    position: sticky;
+    top: 0;
+    background: rgb(var(--surface));
+    padding-top: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgb(var(--border));
+    padding-bottom: 12px;
+  }
+  /* "Grab bar" at the top of bottom sheets — affordance for dismiss */
+  .td::before,
+  .qa::before,
+  .sd::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgb(var(--border-strong));
+    margin: 4px auto 12px;
+  }
+
+  /* QuickAdd modal: full-width bottom sheet */
+  .qa {
+    width: 100% !important;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(16px + var(--safe-bottom));
+  }
+  .qa-shroud { padding-bottom: 0; }
+
+  /* Shutdown modal: bottom sheet too */
+  .sd-shroud {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .sd {
+    width: 100% !important;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(22px + var(--safe-bottom));
+  }
+
+  /* Command palette: full width sheet, no top padding */
+  .palette-shroud { padding-top: 8vh; padding-left: 12px; padding-right: 12px; }
+  .palette { width: 100%; max-height: 76vh; display: flex; flex-direction: column; }
+  .palette-list { flex: 1; max-height: none; }
+
+  /* Toast: lift above home indicator */
+  .fixed.bottom-4 {
+    bottom: calc(16px + var(--safe-bottom)) !important;
+  }
+
+  /* Bulk action bar lifts above home indicator */
+  .sticky.bottom-4 {
+    bottom: calc(16px + var(--safe-bottom)) !important;
+  }
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* =====================================================================
+   FAB (floating action button) — mobile only
+   ===================================================================== */
+.fab {
+  position: fixed;
+  right: calc(20px + var(--safe-right));
+  bottom: calc(20px + var(--safe-bottom));
+  z-index: 40;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  transition: transform .12s, background .15s;
+}
+.fab:hover { background: var(--accent-strong); }
+.fab:active { transform: scale(0.95); }
+
+@media (max-width: 900px) {
+  .fab { display: flex; }
+}
+
+/* =====================================================================
    Mobile (week planner overflow)
    ===================================================================== */
 @media (max-width: 900px) {

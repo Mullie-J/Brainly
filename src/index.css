@@ -87,6 +87,7 @@ html.dark {
 }
 
 html, body, #root { height: 100%; }
+html { -webkit-text-size-adjust: 100%; }
 
 body {
   background: rgb(var(--bg));
@@ -97,6 +98,39 @@ body {
   letter-spacing: -0.005em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Prevent iOS auto-zoom when focusing inputs (font must be ≥ 16px on mobile) */
+@media (max-width: 700px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* All interactive controls — no flicker on tap, no text-selection blue flash */
+button,
+a,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Don't let users accidentally select the UI chrome */
+.sidebar,
+.topbar,
+.page-header,
+.toolbar,
+.tabs,
+.t-timeline-head,
+.section-title,
+.focus-footer .ff-label,
+.kbd {
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Focus ring */

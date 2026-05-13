@@ -1,5 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Menu, Brain, Search } from 'lucide-react';
+import { Menu, Brain, Search, Plus } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useUI } from '@/store/ui';
 import { useEffect } from 'react';
@@ -76,6 +76,17 @@ export default function Layout() {
       <QuickAddTodo />
       <TodoDetail />
       <Toaster />
+
+      {/* Mobile FAB — primary action always within thumb reach */}
+      <button
+        type="button"
+        onClick={() => openQuickAdd()}
+        className="fab"
+        aria-label="Snelle to-do"
+        title="Snelle to-do (T)"
+      >
+        <Plus size={24} strokeWidth={2.4} />
+      </button>
     </div>
   );
 }
