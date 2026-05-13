@@ -25,6 +25,7 @@ import { useNotes, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useUI } from '@/store/ui';
 import PriorityBadge from './PriorityBadge';
 import DateChip from './DateChip';
+import RecurrenceDatePicker from './RecurrenceDatePicker';
 
 const STATUS_OPTIONS: { id: TodoStatus; label: string; color: string }[] = [
   { id: 'todo', label: 'Te doen', color: 'border-border text-muted' },
@@ -51,6 +52,7 @@ const RECURRENCE_OPTIONS: { id: RecurrenceType | 'none'; label: string }[] = [
   { id: 'weekdays', label: 'Werkdagen' },
   { id: 'weekly', label: 'Wekelijks' },
   { id: 'monthly', label: 'Maandelijks' },
+  { id: 'custom', label: 'Aangepast' },
 ];
 
 function useTodo(id: string | null) {
@@ -395,10 +397,21 @@ export default function TodoDetail() {
                 );
               })}
             </div>
-            {todo.recurrence_type && (
+            {todo.recurrence_type && todo.recurrence_type !== 'custom' && (
               <p className="text-[10px] text-muted mt-1.5 italic">
                 Bij afvinken wordt automatisch de volgende instantie aangemaakt.
               </p>
+            )}
+            {todo.recurrence_type === 'custom' && (
+              <>
+                <p className="text-[10px] text-muted mt-1.5 italic">
+                  Klik op de kalender om datums te selecteren waarop de todo terugkomt.
+                </p>
+                <RecurrenceDatePicker
+                  value={todo.recurrence_dates ?? []}
+                  onChange={(dates) => patch({ recurrence_dates: dates })}
+                />
+              </>
             )}
           </div>
 

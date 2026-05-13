@@ -1315,6 +1315,106 @@
 .sd-foot { display: flex; justify-content: flex-end; gap: 6px; }
 
 /* =====================================================================
+   Recurrence Date Picker (Aangepast)
+   ===================================================================== */
+.rec-picker {
+  margin-top: 8px;
+  padding: 12px;
+  background: rgb(var(--surface-2) / 0.5);
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius-lg);
+}
+.rec-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.rec-picker-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  text-transform: capitalize;
+}
+.rec-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.rec-picker-weekday {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgb(var(--muted-2));
+  text-align: center;
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rec-picker-day {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border-radius: 6px;
+  background: transparent;
+  color: rgb(var(--text));
+  cursor: pointer;
+  transition: background .12s, color .12s;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+}
+.rec-picker-day:hover { background: rgb(var(--surface)); border-color: rgb(var(--border)); }
+.rec-picker-day.out { color: rgb(var(--muted-2)); opacity: 0.5; }
+.rec-picker-day.today {
+  border-color: rgb(var(--accent-rgb) / 0.4);
+  color: var(--accent);
+  font-weight: 600;
+}
+.rec-picker-day.selected {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+  border-color: transparent;
+}
+.rec-picker-day.selected:hover { background: var(--accent-strong); }
+.rec-picker-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(var(--border));
+}
+.rec-picker-count {
+  flex: 1;
+  font-size: 11.5px;
+  color: rgb(var(--muted));
+}
+.rec-picker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+.rec-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background .12s;
+}
+.rec-picker-chip:hover { background: rgb(var(--accent-rgb) / 0.16); }
+
+/* =====================================================================
    Mobile (week planner overflow)
    ===================================================================== */
 @media (max-width: 900px) {

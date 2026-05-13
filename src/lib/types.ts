@@ -1,7 +1,7 @@
 export type ProjectStatus = 'active' | 'on_hold' | 'done' | 'archived';
 export type TodoStatus = 'todo' | 'doing' | 'done';
 export type Priority = 1 | 2 | 3;
-export type RecurrenceType = 'daily' | 'weekdays' | 'weekly' | 'monthly';
+export type RecurrenceType = 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'custom';
 export type Scope = 'work' | 'personal';
 
 export interface ProjectLink {
@@ -35,6 +35,7 @@ export interface Todo {
   duration_min: number | null;
   effort_min: number | null;     // estimated effort (planning, not scheduling)
   recurrence_type: RecurrenceType | null;
+  recurrence_dates: string[] | null;     // ISO date strings for recurrence_type='custom'
   scope: Scope;
   source_note_id: string | null;
   position: number;

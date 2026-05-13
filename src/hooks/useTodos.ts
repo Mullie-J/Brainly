@@ -49,6 +49,7 @@ export function useCreateTodo() {
       description?: string | null;
       effort_min?: number | null;
       recurrence_type?: RecurrenceType | null;
+      recurrence_dates?: string[] | null;
       scope?: Scope;
       source_note_id?: string | null;
     }) => {
@@ -67,6 +68,7 @@ export function useCreateTodo() {
           description: input.description ?? null,
           effort_min: input.effort_min ?? null,
           recurrence_type: input.recurrence_type ?? null,
+          recurrence_dates: input.recurrence_dates ?? null,
           scope: input.scope ?? 'work',
           source_note_id: input.source_note_id ?? null,
         })
@@ -89,6 +91,7 @@ export interface TodoPatch {
   duration_min?: number | null;
   effort_min?: number | null;
   recurrence_type?: RecurrenceType | null;
+  recurrence_dates?: string[] | null;
   scope?: Scope;
   project_id?: string | null;
   position?: number;
@@ -97,10 +100,20 @@ export interface TodoPatch {
 
 // Compute the next due_date based on a recurrence rule.
 // Returns null if no due_date or no recurrence.
+// For 'custom', picks the next date from recurrence_dates that's > current
+// due_date.
 export function nextRecurrence(
-  current: Pick<Todo, 'recurrence_type' | 'due_date'>
+  current: Pick<Todo, 'recurrence_type' | 'due_date' | 'recurrence_dates'>
 ): string | null {
   if (!current.recurrence_type) return null;
+  if (current.recurrence_type === 'custom') {
+    const dates = (current.recurrence_dates ?? []).slice().sort();
+    if (dates.length === 0) return null;
+    const cursor = current.due_date ?? format(new Date(), 'yyyy-MM-dd');
+    // Next date strictly after the current due_date
+    const next = dates.find((d) => d > cursor);
+    return next ?? null;
+  }
   const base = current.due_date ? parseISO(current.due_date) : new Date();
   let next: Date;
   switch (current.recurrence_type) {
@@ -136,6 +149,7 @@ const RECURRENCE_WINDOW: Record<RecurrenceType, number> = {
   weekdays: 5,   // 1 werkweek vooruit
   weekly: 4,     // 1 maand vooruit
   monthly: 3,    // 3 maanden vooruit
+  custom: 12,    // tot 12 toekomstige datums uit de array
 };
 
 /**
@@ -166,9 +180,10 @@ async function ensureFutureRecurrences(
   );
 
   // Genereer window aan toekomst-datums vanaf de huidige todo
-  let current: Pick<Todo, 'recurrence_type' | 'due_date'> = {
+  let current: Pick<Todo, 'recurrence_type' | 'due_date' | 'recurrence_dates'> = {
     recurrence_type: todo.recurrence_type,
     due_date: todo.due_date,
+    recurrence_dates: todo.recurrence_dates,
   };
   const rows: any[] = [];
   for (let i = 0; i < window; i++) {
@@ -185,6 +200,7 @@ async function ensureFutureRecurrences(
         due_date: nextDate,
         effort_min: todo.effort_min,
         recurrence_type: todo.recurrence_type,
+        recurrence_dates: todo.recurrence_dates,
       });
     }
     current = { ...current, due_date: nextDate };
@@ -274,6 +290,7 @@ export function useUpdateTodo() {
             due_date: nextDate,
             effort_min: previous.effort_min,
             recurrence_type: previous.recurrence_type,
+            recurrence_dates: previous.recurrence_dates,
           });
         }
       }
