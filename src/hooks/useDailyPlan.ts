@@ -31,6 +31,7 @@ export function useUpsertDailyPlan() {
       top3_todo_ids?: string[];
       shutdown_note?: string | null;
       next_day_top3?: string[];
+      day_rating?: number | null;
     }) => {
       if (!user) throw new Error('Not authenticated');
 
@@ -45,6 +46,7 @@ export function useUpsertDailyPlan() {
       if (input.top3_todo_ids !== undefined) payload.top3_todo_ids = input.top3_todo_ids;
       if (input.shutdown_note !== undefined) payload.shutdown_note = input.shutdown_note;
       if (input.next_day_top3 !== undefined) payload.next_day_top3 = input.next_day_top3;
+      if (input.day_rating !== undefined) payload.day_rating = input.day_rating;
 
       if (existing) {
         const { data, error } = await supabase

@@ -102,6 +102,7 @@ export interface DailyPlan {
   top3_todo_ids: string[];
   shutdown_note: string | null;
   next_day_top3: string[];
+  day_rating: number | null;     // 1..5 self-rating, captured at shutdown
   created_at: string;
   updated_at: string;
 }
