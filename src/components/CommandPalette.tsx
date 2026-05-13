@@ -211,16 +211,10 @@ export default function CommandPalette() {
   if (!paletteOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/30"
-      onClick={() => setPaletteOpen(false)}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl bg-surface rounded-xl border border-border shadow-xl overflow-hidden"
-      >
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-          <Search size={16} className="text-muted" />
+    <div className="palette-shroud" onClick={() => setPaletteOpen(false)}>
+      <div className="palette" onClick={(e) => e.stopPropagation()}>
+        <div className="palette-input">
+          <Search size={14} className="palette-icon" />
           <input
             autoFocus
             value={query}
@@ -229,13 +223,13 @@ export default function CommandPalette() {
               setActive(0);
             }}
             placeholder="Zoek of voer commando uit..."
-            className="flex-1 bg-transparent text-sm focus:outline-none"
+            style={{ background: 'transparent', flex: 1 }}
           />
-          <kbd className="text-[10px] text-muted font-mono">ESC</kbd>
+          <kbd className="kbd">esc</kbd>
         </div>
-        <div className="max-h-[400px] overflow-y-auto py-1">
+        <div className="palette-list">
           {items.length === 0 && (
-            <p className="text-sm text-muted px-4 py-3">Geen resultaten.</p>
+            <p className="palette-empty">Geen resultaten.</p>
           )}
           {items.map((item, i) => {
             const Icon = item.icon;
@@ -244,18 +238,30 @@ export default function CommandPalette() {
                 key={item.id}
                 onMouseEnter={() => setActive(i)}
                 onClick={item.action}
-                className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-                  i === active ? 'bg-surface2' : 'hover:bg-surface2'
-                }`}
+                className="palette-item"
+                style={
+                  i === active
+                    ? { background: 'rgb(var(--surface-2))' }
+                    : undefined
+                }
               >
-                <Icon size={14} className="text-muted shrink-0" />
-                <span className="flex-1 truncate text-left">{item.label}</span>
-                {item.hint && (
-                  <span className="text-xs text-muted">{item.hint}</span>
-                )}
+                <Icon size={14} className="palette-icon" />
+                <span className="palette-label">{item.label}</span>
+                {item.hint && <span className="palette-hint">{item.hint}</span>}
               </button>
             );
           })}
+        </div>
+        <div className="palette-foot">
+          <span>
+            <kbd className="kbd">↑↓</kbd> navigeren
+          </span>
+          <span>
+            <kbd className="kbd">↵</kbd> selecteren
+          </span>
+          <span>
+            <kbd className="kbd">esc</kbd> sluiten
+          </span>
         </div>
       </div>
     </div>

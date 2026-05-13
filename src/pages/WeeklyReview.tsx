@@ -95,44 +95,40 @@ export default function WeeklyReviewPage() {
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
-    <div className="max-w-2xl mx-auto px-6 md:px-10 py-8 md:py-10">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-            <ClipboardList size={18} className="text-accent" />
+    <div className="page page-narrow">
+      <header className="page-header">
+        <div className="page-header-meta">
+          <div className="page-eyebrow">
+            <ClipboardList size={11} /> Weekly review
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Weekly review
-            </h1>
-            <p className="text-xs text-muted">
-              Week van {weekLabel}
-              {review?.completed_at && (
-                <>
-                  {' '}· afgerond {format(parseISO(review.completed_at), 'd MMM HH:mm', { locale: nl })}
-                </>
-              )}
-            </p>
-          </div>
+          <h1 className="page-title">Weekly review</h1>
+          <p className="page-sub">
+            Week van {weekLabel}
+            {review?.completed_at && (
+              <>
+                {' '}· afgerond{' '}
+                {format(parseISO(review.completed_at), 'd MMM HH:mm', { locale: nl })}
+              </>
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="page-actions">
           <button
             onClick={() => setWeekStart(format(subWeeks(weekStartDate, 1), 'yyyy-MM-dd'))}
-            className="p-1.5 rounded-md text-muted hover:bg-surface2 hover:text-text"
+            className="btn btn-ghost"
             aria-label="Vorige week"
           >
-            <ArrowLeft size={15} />
+            <ArrowLeft size={14} />
           </button>
           <button
             onClick={() => setWeekStart(format(addWeeks(weekStartDate, 1), 'yyyy-MM-dd'))}
-            className="p-1.5 rounded-md text-muted hover:bg-surface2 hover:text-text"
+            className="btn btn-ghost"
             aria-label="Volgende week"
           >
-            <ArrowRight size={15} />
+            <ArrowRight size={14} />
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Progress steps */}
       <div className="flex items-center gap-1 mb-6">

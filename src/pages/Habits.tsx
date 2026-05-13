@@ -63,27 +63,24 @@ export default function Habits() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-10 py-8 md:py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Activity size={18} className="text-accent" />
+    <div className="page page-narrow">
+      <header className="page-header">
+        <div className="page-header-meta">
+          <div className="page-eyebrow">
+            <Activity size={11} /> Gewoontes
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Gewoontes</h1>
-            <p className="text-xs text-muted">
-              {habits.length} {habits.length === 1 ? 'gewoonte' : 'gewoontes'} ·
-              dagelijks afvinken
-            </p>
-          </div>
+          <h1 className="page-title">Gewoontes</h1>
+          <p className="page-sub">
+            <span className="tabular">{habits.length}</span>{' '}
+            {habits.length === 1 ? 'gewoonte' : 'gewoontes'} · dagelijks afvinken
+          </p>
         </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90"
-        >
-          <Plus size={14} /> Nieuwe gewoonte
-        </button>
-      </div>
+        <div className="page-actions">
+          <button onClick={() => setCreating(true)} className="btn btn-primary">
+            <Plus size={14} /> Nieuwe gewoonte
+          </button>
+        </div>
+      </header>
 
       {creating && (
         <CreateHabitForm

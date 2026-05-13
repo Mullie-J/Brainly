@@ -109,25 +109,24 @@ export default function Review() {
     : `/n/${current.id}`;
 
   return (
-    <div className="max-w-2xl mx-auto px-6 md:px-10 py-8 md:py-12">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Brain size={18} className="text-accent" />
+    <div className="page page-narrow">
+      <header className="page-header">
+        <div className="page-header-meta">
+          <div className="page-eyebrow">
+            <Brain size={11} /> Review
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Review</h1>
-            <p className="text-xs text-muted">
-              {index + 1} van {session.length} · spaced retrieval
-            </p>
-          </div>
+          <h1 className="page-title">Review</h1>
+          <p className="page-sub">
+            <span className="tabular">{index + 1}</span> van{' '}
+            <span className="tabular">{session.length}</span> · spaced retrieval ·
+            volgend interval{' '}
+            <span className="tabular">
+              {nextInterval(current.review_interval_days ?? 1, true)}
+            </span>{' '}
+            dagen
+          </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted">
-          <span className="tabular-nums">
-            Volgend interval: {nextInterval(current.review_interval_days ?? 1, true)} dagen
-          </span>
-        </div>
-      </div>
+      </header>
 
       {/* Progress bar */}
       <div className="h-1 bg-surface2 rounded-full mb-6 overflow-hidden">

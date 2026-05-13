@@ -1,7 +1,25 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Plus, CheckCircle2, Circle, Moon, CalendarRange, ClipboardList, ArrowRight } from 'lucide-react';
-import { format, parseISO, isToday, isPast, getDay, getHours } from 'date-fns';
+import {
+  Plus,
+  CheckCircle2,
+  Circle,
+  Moon,
+  CalendarRange,
+  ClipboardList,
+  ArrowRight,
+  Flame,
+  Repeat,
+} from 'lucide-react';
+import {
+  format,
+  parseISO,
+  isToday,
+  isPast,
+  getDay,
+  getHours,
+  getWeek,
+} from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { clsx } from 'clsx';
 import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
@@ -13,6 +31,20 @@ import Top3 from '@/components/today/Top3';
 import ShutdownModal from '@/components/today/ShutdownModal';
 import type { Todo } from '@/lib/types';
 
+function greetingForHour(h: number): string {
+  if (h < 6) return 'Vroege vogel';
+  if (h < 12) return 'Goedemorgen';
+  if (h < 18) return 'Goedemiddag';
+  return 'Goedenavond';
+}
+
+function formatMin(m: number): string {
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `${h}u${rem}` : `${h}u`;
+}
+
 export default function Today() {
   const { data: todos = [] } = useTodos();
   const { data: projects = [] } = useProjects();
@@ -20,108 +52,163 @@ export default function Today() {
   const openQuickAdd = useUI((s) => s.openQuickAdd);
   const [shutdownOpen, setShutdownOpen] = useState(false);
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
+  const greeting = greetingForHour(today.getHours());
   const weekStart = currentWeekStart();
   const { data: weeklyReview } = useWeeklyReview(weekStart);
-  // Show banner on Friday (or Sat/Sun if not done yet) when no review for this week
+
   const dow = getDay(today);
   const isFridayOrLater = dow === 5 || dow === 6 || dow === 0;
   const isFridayAfternoon = dow === 5 && getHours(today) >= 15;
   const showReviewBanner =
-    isFridayOrLater && !weeklyReview?.completed_at &&
+    isFridayOrLater &&
+    !weeklyReview?.completed_at &&
     (isFridayAfternoon || dow === 6 || dow === 0);
-  const doing = todos.filter((t) => t.status === 'doing');
+
+  const projectMap = useMemo(
+    () => new Map(projects.map((p) => [p.id, p])),
+    [projects]
+  );
+
+  const overdue = todos
+    .filter(
+      (t) =>
+        t.status !== 'done' &&
+        t.due_date &&
+        isPast(parseISO(t.due_date)) &&
+        !isToday(parseISO(t.due_date))
+    )
+    .sort(
+      (a, b) =>
+        (a.due_date ?? '').localeCompare(b.due_date ?? '') ||
+        a.priority - b.priority
+    );
+
   const dueToday = todos.filter(
     (t) =>
       t.status !== 'done' &&
       t.due_date &&
-      (isToday(parseISO(t.due_date)) || isPast(parseISO(t.due_date)))
+      isToday(parseISO(t.due_date))
   );
-  const projectMap = new Map(projects.map((p) => [p.id, p]));
+  const doing = todos.filter((t) => t.status === 'doing');
   const completedToday = todos.filter(
     (t) => t.completed_at && isToday(parseISO(t.completed_at))
   );
 
   return (
-    <div className="max-w-3xl mx-auto px-6 md:px-10 py-8 md:py-12">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Star size={18} className="text-accent" />
+    <div className="page page-narrow">
+      <header className="today-head">
+        <div className="today-head-l">
+          <div className="page-eyebrow today-eyebrow">
+            <span className="eyebrow-dot" />
+            {format(today, 'EEEE d MMMM yyyy', { locale: nl })} · week{' '}
+            {getWeek(today)}
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Vandaag</h1>
-            <p className="text-xs text-muted">
-              {format(today, 'EEEE d MMMM yyyy', { locale: nl })}
-            </p>
-          </div>
+          <h1 className="page-title today-title">{greeting}.</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/agenda"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-sm text-muted hover:text-text hover:border-accent/50"
-            title="Plan deze week"
-          >
+        <div className="today-head-r">
+          <Link to="/agenda" className="btn btn-ghost">
             <CalendarRange size={14} /> Plan week
           </Link>
-          <button
-            onClick={() => setShutdownOpen(true)}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-sm text-muted hover:text-text hover:border-accent/50"
-            title="Shutdown ritual"
-          >
+          <button onClick={() => setShutdownOpen(true)} className="btn btn-ghost">
             <Moon size={14} /> Shutdown
           </button>
-          <button
-            onClick={() => openQuickAdd()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90"
-          >
+          <button onClick={() => openQuickAdd()} className="btn btn-primary">
             <Plus size={14} /> To-do
           </button>
         </div>
-      </div>
+      </header>
 
       {showReviewBanner && (
         <Link
           to="/weekly-review"
-          className="mb-5 flex items-center gap-3 p-3 rounded-lg border border-accent/30 bg-accent/5 hover:bg-accent/10 transition-colors"
+          className="north-star"
+          style={{ marginTop: 0, marginBottom: 24 }}
         >
-          <ClipboardList size={18} className="text-accent shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Tijd voor je weekly review</p>
-            <p className="text-xs text-muted">
-              Reflecteer op deze week en plan top 3 per dag voor volgende week.
-            </p>
+          <ClipboardList size={18} className="ns-icon" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="ns-label">// weekly review</div>
+            <div className="ns-text">
+              Tijd voor je weekly review — reflecteer op deze week, plan top 3 per dag.
+            </div>
           </div>
-          <ArrowRight size={14} className="text-accent shrink-0" />
+          <ArrowRight size={14} className="ns-icon" />
         </Link>
       )}
 
-      {/* Daily Top 3 — evidence-backed: Ivy Lee + MIT */}
       <Top3 date={today} />
 
-      <Section
-        title="In uitvoering"
-        todos={doing}
-        projectMap={projectMap}
-        update={update}
-        empty="Niets in uitvoering."
-      />
-      <Section
-        title="Verloopt vandaag / overtijd"
-        todos={dueToday}
-        projectMap={projectMap}
-        update={update}
-        empty="Geen openstaande deadlines."
-      />
+      {doing.length > 0 && (
+        <TodaySection title="In uitvoering" badge={doing.length}>
+          <div className="row-list">
+            {doing.map((t) => (
+              <TodoRow
+                key={t.id}
+                todo={t}
+                project={t.project_id ? projectMap.get(t.project_id) : null}
+                update={update}
+              />
+            ))}
+          </div>
+        </TodaySection>
+      )}
+
+      {overdue.length > 0 && (
+        <TodaySection
+          title="Overtijd"
+          badge={overdue.length}
+          variant="overdue"
+          icon={<Flame size={12} />}
+        >
+          <div className="row-list">
+            {overdue.map((t) => (
+              <TodoRow
+                key={t.id}
+                todo={t}
+                project={t.project_id ? projectMap.get(t.project_id) : null}
+                update={update}
+              />
+            ))}
+          </div>
+        </TodaySection>
+      )}
+
+      <TodaySection
+        title="Vandaag"
+        badge={dueToday.length}
+        empty={
+          overdue.length === 0 && doing.length === 0 && dueToday.length === 0
+            ? 'Geen open taken voor vandaag — adem rustig.'
+            : undefined
+        }
+      >
+        {dueToday.length > 0 && (
+          <div className="row-list">
+            {dueToday.map((t) => (
+              <TodoRow
+                key={t.id}
+                todo={t}
+                project={t.project_id ? projectMap.get(t.project_id) : null}
+                update={update}
+              />
+            ))}
+          </div>
+        )}
+      </TodaySection>
 
       {completedToday.length > 0 && (
-        <Section
-          title="Vandaag afgewerkt"
-          todos={completedToday}
-          projectMap={projectMap}
-          update={update}
-          dimmed
-        />
+        <TodaySection title="Afgewerkt vandaag" badge={completedToday.length} dimmed>
+          <div className="row-list">
+            {completedToday.map((t) => (
+              <TodoRow
+                key={t.id}
+                todo={t}
+                project={t.project_id ? projectMap.get(t.project_id) : null}
+                update={update}
+              />
+            ))}
+          </div>
+        </TodaySection>
       )}
 
       <ShutdownModal open={shutdownOpen} onClose={() => setShutdownOpen(false)} />
@@ -129,102 +216,103 @@ export default function Today() {
   );
 }
 
-function SectionRow({
-  todo: t,
+function TodaySection({
+  title,
+  badge,
+  variant,
+  icon,
+  dimmed,
+  empty,
+  children,
+}: {
+  title: string;
+  badge: number;
+  variant?: 'overdue';
+  icon?: React.ReactNode;
+  dimmed?: boolean;
+  empty?: string;
+  children?: React.ReactNode;
+}) {
+  if (badge === 0 && !empty) return null;
+  return (
+    <section
+      className={clsx('t-section', dimmed && 'dim', variant && `t-section-${variant}`)}
+      style={{ marginBottom: 24 }}
+    >
+      <h2 className={clsx('section-title', variant)}>
+        {icon}
+        {title}
+        <span className="section-count tabular">{badge}</span>
+      </h2>
+      {badge === 0 && empty ? <p className="section-empty">{empty}</p> : children}
+    </section>
+  );
+}
+
+function TodoRow({
+  todo,
   project,
   update,
-  dimmed,
 }: {
   todo: Todo;
   project: any;
   update: ReturnType<typeof useUpdateTodo>;
-  dimmed?: boolean;
 }) {
   const openTodo = useUI((s) => s.openTodo);
   return (
-    <div
-      className={clsx(
-        'group flex items-start gap-2.5 px-3 py-2 bg-surface border border-border rounded-md text-sm hover:border-accent/40 transition-colors',
-        dimmed && 'opacity-60'
-      )}
-    >
+    <div className={clsx('row', todo.status === 'done' && 'row-done')}>
       <button
         onClick={() =>
           update.mutate({
-            id: t.id,
-            patch: { status: t.status === 'done' ? 'todo' : 'done' },
+            id: todo.id,
+            patch: { status: todo.status === 'done' ? 'todo' : 'done' },
           })
         }
-        className="mt-0.5 shrink-0 text-muted hover:text-accent"
+        className="check"
+        aria-label="Toggle"
       >
-        {t.status === 'done' ? (
-          <CheckCircle2 size={15} className="text-accent" />
+        {todo.status === 'done' ? (
+          <CheckCircle2 size={15} />
         ) : (
           <Circle size={15} />
         )}
       </button>
-      <button
-        onClick={() => openTodo(t.id)}
-        className="flex-1 min-w-0 text-left"
-      >
-        <div className={clsx(t.status === 'done' && 'line-through text-muted')}>
-          {t.title}
-        </div>
-        <div className="flex items-center gap-1.5 mt-1">
-          <PriorityBadge priority={t.priority} />
-          {project && (
+      <button onClick={() => openTodo(todo.id)} className="row-body">
+        <span className={clsx('row-title', todo.status === 'done' && 'strike')}>
+          {todo.title}
+        </span>
+        <span className="row-meta">
+          <PriorityBadge priority={todo.priority} />
+          {todo.due_date && (
+            <span className={clsx('chip', isToday(parseISO(todo.due_date)) && 'chip-today')}>
+              {format(parseISO(todo.due_date), 'd MMM', { locale: nl })}
+            </span>
+          )}
+          {todo.effort_min && (
+            <span className="meta-effort">
+              <Flame size={9} /> {formatMin(todo.effort_min)}
+            </span>
+          )}
+          {todo.recurrence_type && (
+            <span className="meta-tag">
+              <Repeat size={9} />
+            </span>
+          )}
+          {project ? (
             <Link
               to={`/p/${project.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="text-[10px] text-muted hover:text-accent truncate"
+              className="proj-chip"
             >
-              {project.title}
+              <span className="proj-swatch" style={{ background: 'var(--accent)' }} />
+              <span className="proj-chip-label">{project.title}</span>
             </Link>
+          ) : (
+            <span className="meta-inbox">Inbox</span>
           )}
-          {t.due_date && (
-            <span className="text-[10px] text-muted">
-              {format(parseISO(t.due_date), 'd MMM')}
-            </span>
-          )}
-        </div>
+          {todo.status === 'doing' && <span className="meta-doing">· bezig</span>}
+        </span>
       </button>
     </div>
-  );
-}
-
-function Section({
-  title,
-  todos,
-  projectMap,
-  update,
-  empty,
-  dimmed,
-}: {
-  title: string;
-  todos: any[];
-  projectMap: Map<string, any>;
-  update: ReturnType<typeof useUpdateTodo>;
-  empty?: string;
-  dimmed?: boolean;
-}) {
-  if (todos.length === 0 && !empty) return null;
-  return (
-    <section className="mb-8">
-      <h2 className="text-xs uppercase tracking-wider text-muted font-medium mb-2">
-        {title}
-      </h2>
-      <div className="space-y-1.5">
-        {todos.length === 0 && <p className="text-sm text-muted py-1">{empty}</p>}
-        {todos.map((t) => (
-          <SectionRow
-            key={t.id}
-            todo={t}
-            project={t.project_id ? projectMap.get(t.project_id) : null}
-            update={update}
-            dimmed={dimmed}
-          />
-        ))}
-      </div>
-    </section>
   );
 }

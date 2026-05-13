@@ -1,25 +1,38 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, CalendarDays, Loader2 } from 'lucide-react';
+import { Plus, FolderKanban, Loader2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { useProjects, useCreateProject } from '@/hooks/useProjects';
+import { nl } from 'date-fns/locale';
+import {
+  useProjects,
+  useCreateProject,
+} from '@/hooks/useProjects';
+import { useTodos } from '@/hooks/useTodos';
 import type { ProjectStatus } from '@/lib/types';
 
 const STATUS_LABEL: Record<ProjectStatus, string> = {
-  active: 'Actief',
-  on_hold: 'On hold',
-  done: 'Klaar',
-  archived: 'Archief',
+  active: 'actief',
+  on_hold: 'on hold',
+  done: 'klaar',
+  archived: 'archief',
 };
 
-const STATUS_DOT: Record<ProjectStatus, string> = {
-  active: 'bg-emerald-500',
-  on_hold: 'bg-amber-500',
-  done: 'bg-blue-500',
-  archived: 'bg-zinc-400',
+const STATUS_DOT_CLASS: Record<ProjectStatus, string> = {
+  active: 'dot-emerald',
+  on_hold: 'dot-amber',
+  done: 'dot-sky',
+  archived: 'dot-zinc',
 };
+
+function projectAccent(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  const hue = Math.abs(hash) % 360;
+  return `oklch(70% 0.12 ${hue})`;
+}
 
 export default function ProjectsList() {
   const { data: projects = [], isLoading } = useProjects();
+  const { data: allTodos = [] } = useTodos();
   const createProject = useCreateProject();
   const navigate = useNavigate();
 
@@ -28,72 +41,101 @@ export default function ProjectsList() {
     navigate(`/p/${p.id}`);
   }
 
+  const activeCount = projects.filter((p) => p.status === 'active').length;
+
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-12">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Projecten</h1>
-          <p className="text-sm text-muted mt-1">
-            {projects.length} {projects.length === 1 ? 'project' : 'projecten'}
+    <div className="page page-wide">
+      <header className="page-header">
+        <div className="page-header-meta">
+          <div className="page-eyebrow">
+            <FolderKanban size={11} /> Projecten
+          </div>
+          <h1 className="page-title">Alle projecten</h1>
+          <p className="page-sub">
+            <span className="tabular">{projects.length}</span>{' '}
+            {projects.length === 1 ? 'project' : 'projecten'}
+            {activeCount > 0 && (
+              <>
+                {' '}· <span className="tabular">{activeCount}</span> actief
+              </>
+            )}
           </p>
         </div>
-        <button
-          onClick={handleNew}
-          disabled={createProject.isPending}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90 disabled:opacity-50"
-        >
-          {createProject.isPending ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Plus size={14} />
-          )}
-          Nieuw project
-        </button>
-      </div>
-
-      {isLoading ? (
-        <div className="text-sm text-muted">Laden...</div>
-      ) : projects.length === 0 ? (
-        <div className="border border-dashed border-border rounded-lg p-12 text-center">
-          <p className="text-muted mb-3">Nog geen projecten.</p>
+        <div className="page-actions">
           <button
             onClick={handleNew}
-            className="text-sm text-accent hover:underline inline-flex items-center gap-1"
+            disabled={createProject.isPending}
+            className="btn btn-primary"
           >
+            {createProject.isPending ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Plus size={14} />
+            )}
+            Nieuw project
+          </button>
+        </div>
+      </header>
+
+      {isLoading ? (
+        <p className="muted-text">Laden...</p>
+      ) : projects.length === 0 ? (
+        <div className="empty-card">
+          <p style={{ marginBottom: 12 }}>Nog geen projecten.</p>
+          <button onClick={handleNew} className="btn btn-primary">
             <Plus size={14} /> Maak je eerste project
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {projects.map((p) => (
-            <Link
-              key={p.id}
-              to={`/p/${p.id}`}
-              className="block bg-surface border border-border rounded-lg p-4 hover:border-accent/50 hover:shadow-sm transition-all"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span
-                  className={`w-2 h-2 rounded-full ${STATUS_DOT[p.status]}`}
-                  title={STATUS_LABEL[p.status]}
-                />
-                <span className="text-[11px] text-muted uppercase tracking-wider">
-                  {STATUS_LABEL[p.status]}
-                </span>
-              </div>
-              <h3 className="font-medium tracking-tight mb-1 truncate">
-                {p.title || 'Untitled'}
-              </h3>
-              {p.north_star && (
-                <p className="text-xs text-muted line-clamp-2 mb-3">{p.north_star}</p>
-              )}
-              {p.deadline && (
-                <div className="flex items-center gap-1 text-xs text-muted">
-                  <CalendarDays size={12} />
-                  {format(parseISO(p.deadline), 'd MMM yyyy')}
+        <div className="proj-grid">
+          {projects.map((p) => {
+            const open = allTodos.filter(
+              (t) => t.project_id === p.id && t.status !== 'done'
+            ).length;
+            const done = allTodos.filter(
+              (t) => t.project_id === p.id && t.status === 'done'
+            ).length;
+            const total = open + done;
+            const accent = projectAccent(p.id);
+            return (
+              <Link key={p.id} to={`/p/${p.id}`} className="proj-card">
+                <div className="proj-card-bar" style={{ background: accent }} />
+                <div className="proj-card-body">
+                  <div className="proj-card-head">
+                    <span className={`dot ${STATUS_DOT_CLASS[p.status]}`} />
+                    <span className="muted-text font-mono-tight">
+                      {STATUS_LABEL[p.status]}
+                    </span>
+                  </div>
+                  <h3 className="proj-card-title">{p.title || 'Untitled'}</h3>
+                  {p.north_star && (
+                    <p className="proj-card-ns">{p.north_star}</p>
+                  )}
+                  <div className="proj-card-meta">
+                    <span>
+                      <span className="tabular">{open}</span> open
+                    </span>
+                    {total > 0 && (
+                      <>
+                        <span className="muted-text">·</span>
+                        <span>
+                          <span className="tabular">{done}</span>/{total} klaar
+                        </span>
+                      </>
+                    )}
+                    {p.deadline && (
+                      <>
+                        <span className="muted-text">·</span>
+                        <span>
+                          {format(parseISO(p.deadline), 'd MMM yyyy', { locale: nl })}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
-              )}
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

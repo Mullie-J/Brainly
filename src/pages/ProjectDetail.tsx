@@ -21,25 +21,23 @@ export default function ProjectDetail() {
   const [tab, setTab] = useState<Tab>('todos');
 
   if (isLoading || !project) {
-    return <div className="p-10 text-sm text-muted">Project laden...</div>;
+    return (
+      <div className="page page-wide">
+        <p className="muted-text">Project laden...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 md:px-10 py-6 md:py-10">
+    <div className="page page-wide">
       <ProjectHeader project={project} />
 
-      {/* Tabs */}
-      <div className="mt-8 mb-5 border-b border-border flex gap-1">
+      <div className="tabs">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={clsx(
-              'px-3 py-2 -mb-px text-sm font-medium border-b-2 transition-colors',
-              tab === t.id
-                ? 'border-accent text-text'
-                : 'border-transparent text-muted hover:text-text'
-            )}
+            className={clsx('tab', tab === t.id && 'on')}
           >
             {t.label}
           </button>

@@ -62,35 +62,32 @@ export default function Top3({ date }: { date: Date }) {
   }
 
   return (
-    <section
-      className={clsx(
-        'mb-8 rounded-xl border p-4 md:p-5 transition-colors',
-        fullyDone
-          ? 'border-emerald-500/30 bg-emerald-500/5'
-          : 'border-accent/30 bg-accent/5'
-      )}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Target size={16} className={fullyDone ? 'text-emerald-600' : 'text-accent'} />
-          <h2 className="text-sm font-semibold tracking-tight">
-            Today's Top 3
-          </h2>
-          <span className="text-[11px] text-muted tabular-nums">
-            {completed}/{top3.length || MAX_TOP3}
+    <section className={clsx('top3', fullyDone && 'top3-done')}>
+      <div className="top3-head">
+        <div className="top3-title">
+          <Target size={16} />
+          <span className="top3-h">Vandaag's Top 3</span>
+          <span className="top3-progress">
+            <span className="tabular">{completed}</span>
+            <span className="muted-text"> / {top3.length || MAX_TOP3}</span>
           </span>
         </div>
-        {fullyDone && (
-          <span className="text-xs text-emerald-600 font-medium">Klaar 🎯</span>
-        )}
+        <div className="top3-head-r">
+          <div className="top3-dots">
+            {Array.from({ length: MAX_TOP3 }).map((_, i) => {
+              const t = top3[i];
+              const cls = !t ? '' : t.status === 'done' ? 'd-done' : 'd-pending';
+              return <span key={i} className={clsx('top3-dot', cls)} />;
+            })}
+          </div>
+        </div>
       </div>
 
-      <p className="text-xs text-muted mb-3 italic">
+      <p className="top3-quote">
         Maximaal 3 taken die — als je niets anders zou doen vandaag — het verschil maken.
       </p>
 
-      {/* Slots */}
-      <div className="space-y-1.5 mb-3">
+      <div className="top3-slots">
         {Array.from({ length: MAX_TOP3 }).map((_, i) => {
           const t = top3[i];
           if (!t) {
@@ -99,13 +96,12 @@ export default function Top3({ date }: { date: Date }) {
                 key={i}
                 onClick={() => setPicking(true)}
                 disabled={pickable.length === 0}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md border border-dashed border-border text-sm text-muted hover:text-text hover:border-accent/50 transition-colors disabled:opacity-50"
+                className="top3-slot top3-empty"
               >
-                <span className="w-5 h-5 rounded-full border border-dashed border-muted flex items-center justify-center text-[10px]">
-                  {i + 1}
+                <span className="top3-num">{i + 1}</span>
+                <span className="top3-empty-label">
+                  <Plus size={13} /> <span>Kies #{i + 1}</span>
                 </span>
-                <Plus size={14} />
-                <span>Kies #{i + 1}</span>
               </button>
             );
           }
@@ -113,7 +109,7 @@ export default function Top3({ date }: { date: Date }) {
           return (
             <div
               key={t.id}
-              className="group flex items-start gap-3 px-3 py-2.5 bg-surface border border-border rounded-md text-sm hover:border-accent/40 transition-colors"
+              className={clsx('top3-slot', t.status === 'done' && 'top3-slot-done')}
             >
               <button
                 onClick={() =>
@@ -122,40 +118,44 @@ export default function Top3({ date }: { date: Date }) {
                     patch: { status: t.status === 'done' ? 'todo' : 'done' },
                   })
                 }
-                className="mt-0.5 shrink-0 text-muted hover:text-accent"
+                className="check"
+                aria-label="Toggle"
               >
                 {t.status === 'done' ? (
-                  <CheckCircle2 size={16} className="text-accent" />
+                  <CheckCircle2 size={17} />
                 ) : (
-                  <Circle size={16} />
+                  <Circle size={17} />
                 )}
               </button>
-              <span className="mt-0.5 w-5 h-5 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-semibold shrink-0">
-                {i + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <div
+              <span className="top3-num filled">{i + 1}</span>
+              <div className="top3-body">
+                <span
                   className={clsx(
-                    t.status === 'done' && 'line-through text-muted'
+                    'top3-title-text',
+                    t.status === 'done' && 'strike'
                   )}
                 >
                   {t.title}
-                </div>
-                <div className="flex items-center gap-1.5 mt-1">
+                </span>
+                <span className="row-meta">
                   <PriorityBadge priority={t.priority} />
                   {project && (
                     <Link
                       to={`/p/${project.id}`}
-                      className="text-[10px] text-muted hover:text-accent truncate"
+                      className="proj-chip"
                     >
-                      {project.title}
+                      <span
+                        className="proj-swatch"
+                        style={{ background: 'var(--accent)' }}
+                      />
+                      <span className="proj-chip-label">{project.title}</span>
                     </Link>
                   )}
-                </div>
+                </span>
               </div>
               <button
                 onClick={() => remove(t.id)}
-                className="opacity-0 group-hover:opacity-100 text-muted hover:text-red-500 p-1"
+                className="top3-remove"
                 aria-label="Verwijder uit Top 3"
               >
                 <X size={13} />
@@ -165,31 +165,30 @@ export default function Top3({ date }: { date: Date }) {
         })}
       </div>
 
-      {/* Picker modal */}
       {picking && (
         <div
-          className="fixed inset-0 z-50 bg-black/30 flex items-start justify-center pt-24 px-4"
+          className="palette-shroud"
           onClick={() => setPicking(false)}
         >
           <div
+            className="palette"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-surface rounded-xl border border-border shadow-xl overflow-hidden"
           >
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <h3 className="text-sm font-semibold">
+            <div className="palette-input">
+              <span style={{ fontWeight: 600, flex: 1 }}>
                 Voeg toe aan Today's Top 3
-              </h3>
+              </span>
               <button
                 onClick={() => setPicking(false)}
-                className="text-muted hover:text-text p-1"
+                className="btn btn-ghost"
                 aria-label="Sluit"
               >
                 <X size={14} />
               </button>
             </div>
-            <div className="max-h-[400px] overflow-y-auto py-1">
+            <div className="palette-list">
               {pickable.length === 0 && (
-                <p className="text-sm text-muted px-4 py-3">
+                <p className="palette-empty">
                   Geen open to-do's. Maak er eerst een aan.
                 </p>
               )}
@@ -203,13 +202,13 @@ export default function Top3({ date }: { date: Date }) {
                       setPicking(false);
                     }}
                     disabled={topIds.length >= MAX_TOP3}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-surface2 transition-colors text-left disabled:opacity-50"
+                    className="palette-item"
                   >
-                    <GripVertical size={13} className="text-muted shrink-0" />
-                    <span className="flex-1 truncate">{t.title}</span>
+                    <GripVertical size={13} className="palette-icon" />
+                    <span className="palette-label">{t.title}</span>
                     <PriorityBadge priority={t.priority} />
                     {project && (
-                      <span className="text-[10px] text-muted truncate max-w-[100px]">
+                      <span className="palette-hint" style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {project.title}
                       </span>
                     )}

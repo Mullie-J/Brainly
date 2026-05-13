@@ -17,20 +17,22 @@ import type { Todo, TodoStatus, Priority } from '@/lib/types';
 import { useTodos, useUpdateTodo, useCreateTodo } from '@/hooks/useTodos';
 import TodoCard from './TodoCard';
 
-const COLUMNS: { id: TodoStatus; label: string }[] = [
-  { id: 'todo', label: 'Te doen' },
-  { id: 'doing', label: 'Bezig' },
-  { id: 'done', label: 'Klaar' },
+const COLUMNS: { id: TodoStatus; label: string; dotClass: string }[] = [
+  { id: 'todo', label: 'Te doen', dotClass: 'kcol-dot-todo' },
+  { id: 'doing', label: 'Bezig', dotClass: 'kcol-dot-doing' },
+  { id: 'done', label: 'Klaar', dotClass: 'kcol-dot-done' },
 ];
 
 function Column({
   status,
   label,
+  dotClass,
   todos,
   projectId,
 }: {
   status: TodoStatus;
   label: string;
+  dotClass: string;
   todos: Todo[];
   projectId?: string | null;
 }) {
@@ -63,22 +65,21 @@ function Column({
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col bg-surface2/40 rounded-lg p-2 min-w-[260px] flex-1 transition-colors ${
-        isOver ? 'bg-accent/5 ring-1 ring-accent/30' : ''
-      }`}
+      className={`kcol ${isOver ? 'over' : ''}`}
     >
-      <div className="flex items-center justify-between px-1 mb-2">
-        <h3 className="text-xs uppercase tracking-wider text-muted font-medium">
+      <div className="kcol-head">
+        <div className="kcol-label">
+          <span className={`kcol-dot ${dotClass}`} />
           {label}
-        </h3>
-        <span className="text-xs text-muted tabular-nums">{todos.length}</span>
+        </div>
+        <span className="muted-text tabular font-mono-tight">{todos.length}</span>
       </div>
 
       <SortableContext
         items={todos.map((t) => t.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="flex flex-col gap-1.5 min-h-[20px]">
+        <div className="kcol-body">
           {todos.map((t) => (
             <TodoCard key={t.id} todo={t} />
           ))}
@@ -86,7 +87,7 @@ function Column({
       </SortableContext>
 
       {adding ? (
-        <form onSubmit={submit} className="mt-2">
+        <form onSubmit={submit} style={{ marginTop: 8 }}>
           <input
             autoFocus
             value={text}
@@ -100,17 +101,21 @@ function Column({
               }
             }}
             placeholder="Nieuwe to-do..."
-            className="w-full bg-surface border border-border rounded-md px-2.5 py-2 text-sm focus:outline-none focus:border-accent"
+            style={{
+              width: '100%',
+              background: 'rgb(var(--surface))',
+              border: '1px solid rgb(var(--border))',
+              borderRadius: 'var(--radius)',
+              padding: '8px 10px',
+              fontSize: 13,
+            }}
           />
           {err && (
-            <p className="text-[11px] text-red-500 mt-1 px-1">{err}</p>
+            <p style={{ fontSize: 11, color: 'rgb(var(--rose))', marginTop: 4 }}>{err}</p>
           )}
         </form>
       ) : (
-        <button
-          onClick={() => setAdding(true)}
-          className="mt-2 flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted hover:text-text rounded-md hover:bg-surface2 transition-colors"
-        >
+        <button onClick={() => setAdding(true)} className="kcol-add">
           <Plus size={12} /> Toevoegen
         </button>
       )}
@@ -166,12 +171,13 @@ export default function TodoBoard({ projectId }: { projectId?: string | null }) 
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      <div className="flex flex-col md:flex-row gap-3">
+      <div className="kanban">
         {COLUMNS.map((col) => (
           <Column
             key={col.id}
             status={col.id}
             label={col.label}
+            dotClass={col.dotClass}
             todos={byCol[col.id]}
             projectId={projectId}
           />

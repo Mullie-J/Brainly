@@ -5,10 +5,14 @@ import {
   Plus,
   CheckCircle2,
   Circle,
-  ArrowUpDown,
   ChevronDown,
+  Flame,
+  Repeat,
+  Square,
+  CheckSquare,
 } from 'lucide-react';
 import { format, parseISO, isPast, isToday } from 'date-fns';
+import { nl } from 'date-fns/locale';
 import { clsx } from 'clsx';
 import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
 import {
@@ -18,35 +22,26 @@ import {
 import { useProjects } from '@/hooks/useProjects';
 import { useUI } from '@/store/ui';
 import PriorityBadge from '@/components/todo/PriorityBadge';
-import DateChip from '@/components/todo/DateChip';
 import BulkActionBar from '@/components/todo/BulkActionBar';
-import { Flame, Repeat, Square, CheckSquare } from 'lucide-react';
 import type { Todo, TodoStatus, Priority } from '@/lib/types';
 
 type SortKey = 'priority' | 'due_date' | 'recent' | 'status';
 type StatusFilter = 'open' | 'done' | 'all';
 type ProjectFilter = 'all' | 'none' | string;
 
-const SORT_OPTIONS: { id: SortKey; label: string }[] = [
-  { id: 'priority', label: 'Prioriteit' },
-  { id: 'due_date', label: 'Deadline' },
-  { id: 'recent', label: 'Recent toegevoegd' },
-  { id: 'status', label: 'Status' },
-];
-
-const STATUS_OPTIONS: { id: StatusFilter; label: string }[] = [
-  { id: 'open', label: 'Open' },
-  { id: 'done', label: 'Klaar' },
-  { id: 'all', label: 'Alles' },
-];
-
 const STATUS_LABEL: Record<TodoStatus, string> = {
   todo: 'Te doen',
   doing: 'Bezig',
   done: 'Klaar',
 };
-
 const STATUS_ORDER: Record<TodoStatus, number> = { doing: 0, todo: 1, done: 2 };
+
+function formatMin(m: number): string {
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem ? `${h}u${rem}` : `${h}u`;
+}
 
 export default function AllTodos() {
   const { data: todos = [] } = useTodos();
@@ -101,100 +96,95 @@ export default function AllTodos() {
         return (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999');
       }
       if (sort === 'due_date') {
-        // todos without due date last
         const ad = a.due_date ?? '9999-12-31';
         const bd = b.due_date ?? '9999-12-31';
         if (ad !== bd) return ad.localeCompare(bd);
         return a.priority - b.priority;
       }
       if (sort === 'status') {
-        if (a.status !== b.status) {
+        if (a.status !== b.status)
           return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
-        }
         return a.priority - b.priority;
       }
-      // recent
       return b.created_at.localeCompare(a.created_at);
     });
     return list;
   }, [filtered, sort]);
 
-  // Group by sort key for visual sections (when relevant)
   const groups = useMemo(() => {
-    if (sort === 'priority') {
-      return groupBy(sorted, (t) => `P${t.priority}`);
-    }
-    if (sort === 'status') {
+    if (sort === 'priority') return groupBy(sorted, (t) => `P${t.priority}`);
+    if (sort === 'status')
       return groupBy(sorted, (t) => STATUS_LABEL[t.status]);
-    }
     if (sort === 'due_date') {
       return groupBy(sorted, (t) => {
         if (!t.due_date) return 'Geen datum';
         const d = parseISO(t.due_date);
         if (isPast(d) && !isToday(d)) return 'Overtijd';
         if (isToday(d)) return 'Vandaag';
-        return format(d, 'd MMM yyyy');
+        return format(d, 'd MMM yyyy', { locale: nl });
       });
     }
     return [{ key: '', label: '', items: sorted }];
   }, [sorted, sort]);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-10 py-8 md:py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-surface2 flex items-center justify-center">
-            <ListTodo size={18} className="text-muted" />
+    <div className="page page-narrow">
+      <header className="page-header">
+        <div className="page-header-meta">
+          <div className="page-eyebrow">
+            <ListTodo size={11} /> Backlog
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Alle to-do's</h1>
-            <p className="text-xs text-muted">
-              {sorted.length} {sorted.length === 1 ? 'item' : 'items'}
-              {filtered.length !== todos.length && (
-                <> · {todos.length} totaal</>
-              )}
-            </p>
-          </div>
+          <h1 className="page-title">Alle to-do's</h1>
+          <p className="page-sub">
+            <span className="tabular">{sorted.length}</span>{' '}
+            {sorted.length === 1 ? 'item' : 'items'}
+            {filtered.length !== todos.length && (
+              <>
+                {' '}
+                · <span className="tabular">{todos.length}</span> totaal
+              </>
+            )}
+            {unassignedCount > 0 && projectFilter !== 'none' && (
+              <>
+                {' '}
+                ·{' '}
+                <button
+                  onClick={() => setProjectFilter('none')}
+                  style={{
+                    color: 'rgb(var(--amber))',
+                    whiteSpace: 'nowrap',
+                    fontWeight: 500,
+                  }}
+                >
+                  {unassignedCount} zonder project
+                </button>
+              </>
+            )}
+          </p>
         </div>
-        <button
-          onClick={() => openQuickAdd()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90"
-        >
-          <Plus size={14} /> To-do
-        </button>
-      </div>
+        <div className="page-actions">
+          <button onClick={() => openQuickAdd()} className="btn btn-primary">
+            <Plus size={14} /> To-do
+          </button>
+        </div>
+      </header>
 
-      {/* Filter row */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        {/* Status filter */}
-        <div className="flex items-center gap-0.5 bg-surface2/50 rounded-full p-0.5">
-          {STATUS_OPTIONS.map((s) => (
+      <div className="toolbar">
+        <div className="seg">
+          {(['open', 'done', 'all'] as StatusFilter[]).map((k) => (
             <button
-              key={s.id}
-              onClick={() => setStatusFilter(s.id)}
-              className={clsx(
-                'text-xs px-2.5 py-1 rounded-full transition-colors',
-                statusFilter === s.id
-                  ? 'bg-surface text-text shadow-sm'
-                  : 'text-muted hover:text-text'
-              )}
+              key={k}
+              className={clsx('seg-btn', statusFilter === k && 'on')}
+              onClick={() => setStatusFilter(k)}
             >
-              {s.label}
+              {k === 'open' ? 'Open' : k === 'done' ? 'Klaar' : 'Alles'}
             </button>
           ))}
         </div>
-
-        {/* Project filter */}
-        <div className="relative">
+        <div className="select-wrap">
           <select
             value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value as any)}
-            className={clsx(
-              'appearance-none text-xs pl-3 pr-8 py-1.5 bg-surface border rounded-full hover:border-accent/50 focus:outline-none cursor-pointer transition-colors',
-              unassignedCount > 0 && projectFilter !== 'none'
-                ? 'border-amber-500/40'
-                : 'border-border'
-            )}
+            onChange={(e) => setProjectFilter(e.target.value as ProjectFilter)}
           >
             <option value="all">Alle projecten</option>
             <option value="none">📥 Zonder project</option>
@@ -204,63 +194,35 @@ export default function AllTodos() {
               </option>
             ))}
           </select>
-          <ChevronDown
-            size={11}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
-          />
-          {/* Unassigned notification badge */}
-          {unassignedCount > 0 && projectFilter !== 'none' && (
-            <button
-              onClick={() => setProjectFilter('none')}
-              title={`${unassignedCount} to-do's zonder project — klik om te filteren`}
-              className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-semibold flex items-center justify-center shadow-sm hover:scale-110 transition-transform tabular-nums"
-            >
-              {unassignedCount}
-            </button>
-          )}
+          <ChevronDown size={11} className="select-chev" />
         </div>
-
-        {/* Sort */}
-        <div className="ml-auto flex items-center gap-1.5">
-          <ArrowUpDown size={12} className="text-muted" />
-          <div className="relative">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              className="appearance-none text-xs pl-2.5 pr-7 py-1.5 bg-surface border border-border rounded-full hover:border-accent/50 focus:outline-none cursor-pointer"
-            >
-              {SORT_OPTIONS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  Sorteer op {s.label.toLowerCase()}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={11}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
-            />
-          </div>
+        <div className="toolbar-spacer" />
+        <div className="select-wrap">
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+            <option value="priority">Sorteer op prioriteit</option>
+            <option value="due_date">Sorteer op deadline</option>
+            <option value="status">Sorteer op status</option>
+            <option value="recent">Sorteer op recent</option>
+          </select>
+          <ChevronDown size={11} className="select-chev" />
         </div>
       </div>
 
-      {/* List */}
       {sorted.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-border rounded-lg">
-          <p className="text-sm text-muted">Geen to-do's in deze view.</p>
+        <div className="empty-card">
+          <p>Geen to-do's in deze view.</p>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="row-groups">
           {groups.map((g) => (
             <section key={g.key}>
               {g.label && (
-                <h2 className="text-xs uppercase tracking-wider text-muted font-medium mb-2 px-1">
-                  {g.label}{' '}
-                  <span className="ml-1 tabular-nums normal-case font-normal">
-                    {g.items.length}
-                  </span>
+                <h2 className="section-title">
+                  {g.label}
+                  <span className="section-count tabular">{g.items.length}</span>
                 </h2>
               )}
-              <div className="space-y-1">
+              <div className="row-list">
                 {g.items.map((t) => (
                   <Row
                     key={t.id}
@@ -279,9 +241,6 @@ export default function AllTodos() {
                     }
                     onPriority={(p) =>
                       update.mutate({ id: t.id, patch: { priority: p } })
-                    }
-                    onDate={(d) =>
-                      update.mutate({ id: t.id, patch: { due_date: d } })
                     }
                   />
                 ))}
@@ -324,7 +283,6 @@ function Row({
   onSelect,
   onToggle,
   onPriority,
-  onDate,
 }: {
   todo: Todo;
   project: any;
@@ -333,66 +291,66 @@ function Row({
   onSelect: () => void;
   onToggle: () => void;
   onPriority: (p: Priority) => void;
-  onDate: (d: string | null) => void;
 }) {
   const openTodo = useUI((s) => s.openTodo);
   return (
     <div
-      className={clsx(
-        'group flex items-start gap-2.5 px-3 py-2 bg-surface border rounded-md text-sm transition-colors',
+      className={clsx('row', todo.status === 'done' && 'row-done')}
+      style={
         selected
-          ? 'border-accent/60 bg-accent/5'
-          : 'border-border hover:border-accent/40'
-      )}
+          ? {
+              borderColor: 'rgb(var(--accent-rgb) / 0.6)',
+              background: 'rgb(var(--accent-rgb) / 0.04)',
+            }
+          : undefined
+      }
     >
       <button
         onClick={onSelect}
-        className={clsx(
-          'mt-0.5 shrink-0 transition-opacity',
-          selected || selectionActive
-            ? 'opacity-100 text-accent'
-            : 'opacity-0 group-hover:opacity-100 text-muted hover:text-text'
-        )}
         aria-label={selected ? 'Deselecteer' : 'Selecteer'}
+        className="check"
+        style={{
+          opacity: selected || selectionActive ? 1 : 0,
+          transition: 'opacity 0.12s',
+          color: selected ? 'var(--accent)' : 'rgb(var(--muted))',
+        }}
+        onFocus={(e) => (e.currentTarget.style.opacity = '1')}
       >
         {selected ? <CheckSquare size={15} /> : <Square size={15} />}
       </button>
-      <button
-        onClick={onToggle}
-        className="mt-0.5 shrink-0 text-muted hover:text-accent"
-        aria-label="Toggle done"
-      >
+      <button onClick={onToggle} className="check" aria-label="Toggle">
         {todo.status === 'done' ? (
-          <CheckCircle2 size={15} className="text-accent" />
+          <CheckCircle2 size={15} />
         ) : (
           <Circle size={15} />
         )}
       </button>
-      <button
-        onClick={() => openTodo(todo.id)}
-        className="flex-1 min-w-0 text-left"
-      >
-        <div
-          className={clsx(
-            'truncate',
-            todo.status === 'done' && 'line-through text-muted'
-          )}
-        >
+      <button onClick={() => openTodo(todo.id)} className="row-body">
+        <span className={clsx('row-title', todo.status === 'done' && 'strike')}>
           {todo.title}
-        </div>
-        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+        </span>
+        <span className="row-meta">
           <PriorityBadge priority={todo.priority} onChange={onPriority} />
-          <DateChip value={todo.due_date} onChange={onDate} />
+          {todo.due_date && (
+            <span
+              className={clsx(
+                'chip',
+                isToday(parseISO(todo.due_date)) && 'chip-today',
+                isPast(parseISO(todo.due_date)) &&
+                  !isToday(parseISO(todo.due_date)) &&
+                  'chip-overdue'
+              )}
+            >
+              {format(parseISO(todo.due_date), 'd MMM', { locale: nl })}
+            </span>
+          )}
           {todo.effort_min && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-border text-muted">
+            <span className="meta-effort">
               <Flame size={9} /> {formatMin(todo.effort_min)}
             </span>
           )}
           {todo.recurrence_type && (
-            <span
-              title={todo.recurrence_type}
-              className="inline-flex items-center text-[10px] px-1 py-0.5 rounded border border-border text-muted"
-            >
+            <span className="meta-tag">
               <Repeat size={9} />
             </span>
           )}
@@ -400,27 +358,19 @@ function Row({
             <Link
               to={`/p/${project.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="text-[10px] text-muted hover:text-accent truncate"
+              className="proj-chip"
             >
-              {project.title}
+              <span className="proj-swatch" style={{ background: 'var(--accent)' }} />
+              <span className="proj-chip-label">{project.title}</span>
             </Link>
           ) : (
-            <span className="text-[10px] text-muted italic">Zonder project</span>
+            <span className="meta-inbox">Inbox</span>
           )}
-          {todo.status === 'doing' && (
-            <span className="text-[10px] text-amber-600">· Bezig</span>
-          )}
-        </div>
+          {todo.status === 'doing' && <span className="meta-doing">· bezig</span>}
+        </span>
       </button>
     </div>
   );
-}
-
-function formatMin(m: number): string {
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  const rem = m % 60;
-  return rem ? `${h}u${rem}` : `${h}u`;
 }
 
 function groupBy<T>(

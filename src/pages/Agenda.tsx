@@ -162,48 +162,40 @@ export default function Agenda() {
   }, [dated, weekStart, weekEnd]);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-10 py-8 md:py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
-            <CalendarIcon size={18} className="text-accent" />
+    <div className="page page-wide">
+      <header className="page-header">
+        <div className="page-header-meta">
+          <div className="page-eyebrow">
+            <CalendarIcon size={11} /> Agenda
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
-            <p className="text-xs text-muted">
-              {counts.total} {counts.total === 1 ? 'to-do' : "to-do's"} met een datum
-            </p>
-          </div>
+          <h1 className="page-title">Agenda</h1>
+          <p className="page-sub">
+            <span className="tabular">{counts.total}</span>{' '}
+            {counts.total === 1 ? 'to-do' : "to-do's"} met een datum
+          </p>
         </div>
-        <button
-          onClick={() => openQuickAdd()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90"
-        >
-          <Plus size={14} /> To-do
-        </button>
-      </div>
+        <div className="page-actions">
+          <button onClick={() => openQuickAdd()} className="btn btn-primary">
+            <Plus size={14} /> To-do
+          </button>
+        </div>
+      </header>
 
-      {/* Filter pills */}
-      <div className="flex items-center gap-1.5 mb-6 flex-wrap">
+      <div className="toolbar">
         {RANGES.map((r) => (
           <button
             key={r.id}
             onClick={() => setRange(r.id)}
-            className={clsx(
-              'text-sm px-3 py-1.5 rounded-full border transition-colors',
-              range === r.id
-                ? 'bg-accent text-white border-accent'
-                : 'bg-surface text-muted border-border hover:text-text'
-            )}
+            className={clsx('pill', range === r.id && 'on')}
           >
             {r.label}
             {r.id === 'today' && counts.todayCount > 0 && (
-              <span className="ml-1.5 text-[10px] tabular-nums opacity-80">
+              <span className="tabular" style={{ fontSize: 10, opacity: 0.8 }}>
                 {counts.todayCount}
               </span>
             )}
             {r.id === 'week' && counts.weekCount > 0 && (
-              <span className="ml-1.5 text-[10px] tabular-nums opacity-80">
+              <span className="tabular" style={{ fontSize: 10, opacity: 0.8 }}>
                 {counts.weekCount}
               </span>
             )}

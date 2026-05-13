@@ -98,35 +98,38 @@ export default function AllNotes() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-10 py-8 md:py-10">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-surface2 flex items-center justify-center">
-            <StickyNote size={18} className="text-muted" />
+    <div className="page page-wide">
+      <header className="page-header">
+        <div className="page-header-meta">
+          <div className="page-eyebrow">
+            <StickyNote size={11} /> Notities
           </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Notities</h1>
-            <p className="text-xs text-muted">
-              {sorted.length} {sorted.length === 1 ? 'notitie' : 'notities'}
-              {filtered.length !== notes.length && (
-                <> · {notes.length} totaal</>
-              )}
-            </p>
-          </div>
+          <h1 className="page-title">Alle notities</h1>
+          <p className="page-sub">
+            <span className="tabular">{sorted.length}</span>{' '}
+            {sorted.length === 1 ? 'notitie' : 'notities'}
+            {filtered.length !== notes.length && (
+              <>
+                {' '}· <span className="tabular">{notes.length}</span> totaal
+              </>
+            )}
+          </p>
         </div>
-        <button
-          onClick={handleNew}
-          disabled={createNote.isPending}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-accent text-white text-sm font-medium hover:opacity-90 disabled:opacity-50"
-        >
-          {createNote.isPending ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Plus size={14} />
-          )}
-          Nieuwe notitie
-        </button>
-      </div>
+        <div className="page-actions">
+          <button
+            onClick={handleNew}
+            disabled={createNote.isPending}
+            className="btn btn-primary"
+          >
+            {createNote.isPending ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Plus size={14} />
+            )}
+            Nieuwe notitie
+          </button>
+        </div>
+      </header>
 
       {/* Search bar */}
       <div className="relative mb-4">
@@ -143,19 +146,13 @@ export default function AllNotes() {
       </div>
 
       {/* Filter row */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        {/* Scope pills */}
-        <div className="flex items-center gap-0.5 bg-surface2/50 rounded-full p-0.5">
+      <div className="toolbar">
+        <div className="seg">
           {SCOPE_OPTIONS.map((s) => (
             <button
               key={s.id}
               onClick={() => setScope(s.id)}
-              className={clsx(
-                'text-xs px-2.5 py-1 rounded-full transition-colors',
-                scope === s.id
-                  ? 'bg-surface text-text shadow-sm'
-                  : 'text-muted hover:text-text'
-              )}
+              className={clsx('seg-btn', scope === s.id && 'on')}
             >
               {s.label}
             </button>
@@ -210,23 +207,20 @@ export default function AllNotes() {
       {isLoading ? (
         <p className="text-sm text-muted">Laden...</p>
       ) : sorted.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-border rounded-lg">
-          <p className="text-sm text-muted mb-2">
+        <div className="empty-card">
+          <p style={{ marginBottom: 12 }}>
             {query || scope !== 'all' || projectFilter !== 'all'
               ? 'Geen notities in deze view.'
               : 'Nog geen notities.'}
           </p>
           {!query && scope === 'open' && projectFilter === 'all' && (
-            <button
-              onClick={handleNew}
-              className="text-sm text-accent hover:underline inline-flex items-center gap-1"
-            >
+            <button onClick={handleNew} className="btn btn-primary">
               <Plus size={14} /> Maak je eerste notitie
             </button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="notes-grid">
           {sorted.map((n) => (
             <NoteCard
               key={n.id}
@@ -268,62 +262,55 @@ function NoteCard({
   return (
     <Link
       to={href}
-      className={clsx(
-        'group block bg-surface border rounded-lg p-4 hover:shadow-sm transition-all',
-        note.is_done
-          ? 'border-border opacity-60 hover:opacity-100 hover:border-accent/50'
-          : 'border-border hover:border-accent/50'
-      )}
+      className="note-card"
+      style={note.is_done ? { opacity: 0.65 } : undefined}
     >
-      {/* Meta header */}
-      <div className="flex items-center gap-1.5 text-[10px] text-muted mb-1.5 flex-wrap">
-        {note.is_done && (
-          <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-            ✓ Klaar
-          </span>
-        )}
-        {project && (
-          <span className="inline-flex items-center gap-1 text-muted">
-            <FolderKanban size={10} />
-            <span className="truncate max-w-[160px]">{project.title}</span>
-          </span>
-        )}
-        {todo && (
-          <span className="inline-flex items-center gap-1 text-muted">
-            <CheckSquare size={10} />
-            <span className="truncate max-w-[160px]">{todo.title}</span>
-          </span>
-        )}
-        {!project && !todo && !note.is_done && (
-          <span className="italic">Los</span>
-        )}
-        <span className="ml-auto tabular-nums">{updatedStr}</span>
+      <div className="note-card-head">
+        <h3 className="note-card-title">{note.title || 'Untitled'}</h3>
+        <span className="muted-text font-mono-tight tabular">{updatedStr}</span>
       </div>
 
-      {/* Title */}
-      <h3 className="font-semibold tracking-tight text-base mb-2 line-clamp-2 group-hover:text-accent transition-colors">
-        {note.title || 'Untitled'}
-      </h3>
-
-      {/* TL;DR */}
       {note.tldr ? (
-        <div className="text-sm text-text/80 flex items-start gap-1.5 mb-2">
-          <Sparkles size={11} className="text-accent shrink-0 mt-1" />
-          <p className="line-clamp-4 leading-relaxed whitespace-pre-wrap">
+        <div className="note-tldr">
+          <Sparkles size={11} className="note-tldr-tag" />
+          <p style={{ margin: 0 }} className="note-body">
             {note.tldr}
           </p>
         </div>
       ) : (
-        <p className="text-xs text-muted italic">Nog geen TL;DR ingevuld.</p>
+        <p className="muted-text" style={{ fontSize: 12, fontStyle: 'italic', margin: 0 }}>
+          Nog geen TL;DR ingevuld.
+        </p>
       )}
 
-      {/* Review status */}
-      {reviewedStr && (
-        <div className="flex items-center gap-1 text-[10px] text-muted mt-2 pt-2 border-t border-border">
-          <Repeat size={9} />
-          Gereviewd {reviewedStr} · interval {note.review_interval_days}d
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        {note.is_done && (
+          <span className="chip" style={{ color: 'rgb(var(--emerald))' }}>
+            ✓ klaar
+          </span>
+        )}
+        {project && (
+          <span className="proj-chip">
+            <FolderKanban size={10} />
+            <span className="proj-chip-label">{project.title}</span>
+          </span>
+        )}
+        {todo && (
+          <span className="proj-chip">
+            <CheckSquare size={10} />
+            <span className="proj-chip-label">{todo.title}</span>
+          </span>
+        )}
+        {!project && !todo && !note.is_done && (
+          <span className="meta-inbox">Los</span>
+        )}
+        {reviewedStr && (
+          <span className="muted-text font-mono-tight" style={{ marginLeft: 'auto' }}>
+            <Repeat size={9} style={{ display: 'inline', marginRight: 2 }} />
+            {reviewedStr} · {note.review_interval_days}d
+          </span>
+        )}
+      </div>
     </Link>
   );
 }
