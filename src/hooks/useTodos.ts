@@ -140,74 +140,46 @@ export function nextRecurrence(
   return format(next, 'yyyy-MM-dd');
 }
 
-// Hoeveel future instances we van te voren genereren per type.
-// Genoeg om in de agenda zichtbaar te zijn, weinig genoeg om geen clutter te
-// worden. Bij voltooien spawnt useUpdateTodo automatisch een nieuwe waardoor
-// de window blijft rollen.
-const RECURRENCE_WINDOW: Record<RecurrenceType, number> = {
-  daily: 7,      // 1 week vooruit
-  weekdays: 5,   // 1 werkweek vooruit
-  weekly: 4,     // 1 maand vooruit
-  monthly: 3,    // 3 maanden vooruit
-  custom: 12,    // tot 12 toekomstige datums uit de array
-};
+// Recurring todos are kept as ONE open instance at a time. When the current
+// instance is marked done, useUpdateTodo's on-done block spawns exactly one
+// next-date instance. There is no pre-spawning, so lists/agenda only show
+// the next occurrence — no clutter.
 
 /**
- * Zorg dat er een rolling window aan future-instances bestaat voor een
- * recurring todo. Dedupt op (user_id, title, recurrence_type, due_date) zodat
- * herhaald aanroepen geen duplicates maakt.
+ * Remove duplicate OPEN instances of a recurring series, keeping only the one
+ * with the earliest due_date (the "current" / next-up). Used as a one-shot
+ * cleanup for users who accumulated pre-spawns under the old logic.
+ *
+ * Returns number of rows deleted.
  */
-async function ensureFutureRecurrences(
-  todo: Todo,
-  userId: string
-): Promise<void> {
-  if (!todo.recurrence_type) return;
-  const window = RECURRENCE_WINDOW[todo.recurrence_type] ?? 4;
-
-  // Bestaande open future-instances ophalen (zelfde titel + recurrence_type)
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const { data: existing } = await supabase
+export async function cleanupRecurringDuplicates(params: {
+  userId: string;
+  title: string;
+  recurrenceType: RecurrenceType;
+  keepId?: string;
+}): Promise<number> {
+  const { data: rows } = await supabase
     .from('todos')
-    .select('due_date')
-    .eq('user_id', userId)
-    .eq('title', todo.title)
-    .eq('recurrence_type', todo.recurrence_type)
+    .select('id, due_date')
+    .eq('user_id', params.userId)
+    .eq('title', params.title)
+    .eq('recurrence_type', params.recurrenceType)
     .eq('status', 'todo')
-    .gte('due_date', todayStr);
+    .order('due_date', { ascending: true });
 
-  const existingDates = new Set(
-    (existing ?? []).map((r: any) => r.due_date as string)
-  );
+  const list = (rows ?? []) as { id: string; due_date: string | null }[];
+  if (list.length <= 1) return 0;
 
-  // Genereer window aan toekomst-datums vanaf de huidige todo
-  let current: Pick<Todo, 'recurrence_type' | 'due_date' | 'recurrence_dates'> = {
-    recurrence_type: todo.recurrence_type,
-    due_date: todo.due_date,
-    recurrence_dates: todo.recurrence_dates,
-  };
-  const rows: any[] = [];
-  for (let i = 0; i < window; i++) {
-    const nextDate = nextRecurrence(current);
-    if (!nextDate) break;
-    if (!existingDates.has(nextDate)) {
-      rows.push({
-        user_id: userId,
-        title: todo.title,
-        description: todo.description,
-        project_id: todo.project_id,
-        priority: todo.priority,
-        status: 'todo',
-        due_date: nextDate,
-        effort_min: todo.effort_min,
-        recurrence_type: todo.recurrence_type,
-        recurrence_dates: todo.recurrence_dates,
-      });
-    }
-    current = { ...current, due_date: nextDate };
-  }
-  if (rows.length > 0) {
-    await supabase.from('todos').insert(rows);
-  }
+  // Keep the row matching keepId if given, else the earliest due_date row
+  const keep = params.keepId
+    ? list.find((r) => r.id === params.keepId) ?? list[0]
+    : list[0];
+  const toDelete = list.filter((r) => r.id !== keep.id).map((r) => r.id);
+  if (toDelete.length === 0) return 0;
+
+  const { error } = await supabase.from('todos').delete().in('id', toDelete);
+  if (error) throw error;
+  return toDelete.length;
 }
 
 export function useUpdateTodo() {
@@ -295,15 +267,9 @@ export function useUpdateTodo() {
         }
       }
 
-      // Als recurrence wordt aangezet (of veranderd), zorg direct dat de
-      // future-window gevuld is. Idempotent via dedup.
-      if (
-        user &&
-        patch.recurrence_type !== undefined &&
-        (data as Todo).recurrence_type
-      ) {
-        await ensureFutureRecurrences(data as Todo, user.id);
-      }
+      // No pre-spawning of future instances. We keep exactly ONE open todo
+      // per recurring series in the lists. The next instance only spawns
+      // when this one is marked done (see the on-done block above).
 
       return data as Todo;
     },

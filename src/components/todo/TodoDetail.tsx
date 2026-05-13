@@ -19,7 +19,10 @@ import { useQuery } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { Todo, Priority, TodoStatus, RecurrenceType, Scope, Note } from '@/lib/types';
-import { useUpdateTodo, useDeleteTodo } from '@/hooks/useTodos';
+import { useUpdateTodo, useDeleteTodo, cleanupRecurringDuplicates } from '@/hooks/useTodos';
+import { useQueryClient } from '@tanstack/react-query';
+import { useToasts } from '@/store/toasts';
+import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useNotes, useCreateNote, useUpdateNote } from '@/hooks/useNotes';
 import { useUI } from '@/store/ui';
@@ -83,6 +86,9 @@ export default function TodoDetail() {
   const { data: allNotes = [] } = useNotes();
   const update = useUpdateTodo();
   const remove = useDeleteTodo();
+  const qc = useQueryClient();
+  const showToast = useToasts((s) => s.showToast);
+  const { user } = useAuth();
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
   const [picker, setPicker] = useState(false);
@@ -397,21 +403,44 @@ export default function TodoDetail() {
                 );
               })}
             </div>
-            {todo.recurrence_type && todo.recurrence_type !== 'custom' && (
+            {todo.recurrence_type && (
               <p className="text-[10px] text-muted mt-1.5 italic">
-                Bij afvinken wordt automatisch de volgende instantie aangemaakt.
+                Bij afvinken verschuift de todo naar de volgende datum — slechts één open instantie tegelijk.
               </p>
             )}
             {todo.recurrence_type === 'custom' && (
-              <>
-                <p className="text-[10px] text-muted mt-1.5 italic">
-                  Klik op de kalender om datums te selecteren waarop de todo terugkomt.
-                </p>
-                <RecurrenceDatePicker
-                  value={todo.recurrence_dates ?? []}
-                  onChange={(dates) => patch({ recurrence_dates: dates })}
-                />
-              </>
+              <RecurrenceDatePicker
+                value={todo.recurrence_dates ?? []}
+                onChange={(dates) => patch({ recurrence_dates: dates })}
+              />
+            )}
+            {todo.recurrence_type && user && (
+              <button
+                onClick={async () => {
+                  if (!confirm(
+                    `Andere open instances van "${todo.title}" verwijderen?\n\nDit ruimt de oude duplicates op die door eerdere recurrence-logica zijn aangemaakt. Deze todo zelf blijft staan.`
+                  )) return;
+                  try {
+                    const deleted = await cleanupRecurringDuplicates({
+                      userId: user.id,
+                      title: todo.title,
+                      recurrenceType: todo.recurrence_type!,
+                      keepId: todo.id,
+                    });
+                    qc.invalidateQueries({ queryKey: ['todos'] });
+                    showToast({
+                      message: deleted > 0
+                        ? `${deleted} duplicate${deleted === 1 ? '' : 's'} opgeruimd`
+                        : 'Geen duplicates gevonden',
+                    });
+                  } catch (e: any) {
+                    showToast({ message: `Opruimen mislukt: ${e?.message ?? 'onbekend'}` });
+                  }
+                }}
+                className="text-[10px] text-muted hover:text-accent mt-2 underline decoration-dotted"
+              >
+                Ruim oude duplicates op
+              </button>
             )}
           </div>
 
