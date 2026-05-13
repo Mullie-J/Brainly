@@ -17,6 +17,7 @@ import {
   Monitor,
   Activity,
   ClipboardList,
+  BarChart3,
 } from 'lucide-react';
 import { useReviewQueue } from '@/hooks/useNotes';
 import { clsx } from 'clsx';
@@ -209,6 +210,12 @@ export default function Sidebar() {
           to="/weekly-review"
           icon={ClipboardList}
           label="Weekly review"
+          onClick={closeOnMobile}
+        />
+        <NavItem
+          to="/stats"
+          icon={BarChart3}
+          label="Stats"
           onClick={closeOnMobile}
         />
       </nav>

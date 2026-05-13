@@ -20,6 +20,7 @@ const AllNotes = lazy(() => import('@/pages/AllNotes'));
 const Review = lazy(() => import('@/pages/Review'));
 const WeeklyReview = lazy(() => import('@/pages/WeeklyReview'));
 const Habits = lazy(() => import('@/pages/Habits'));
+const Stats = lazy(() => import('@/pages/Stats'));
 
 export default function App() {
   useApplyTheme();
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/review" element={withSuspense(<Review />)} />
         <Route path="/weekly-review" element={withSuspense(<WeeklyReview />)} />
         <Route path="/habits" element={withSuspense(<Habits />)} />
+        <Route path="/stats" element={withSuspense(<Stats />)} />
         <Route path="/notes" element={withSuspense(<AllNotes />)} />
         <Route path="/p/:projectId" element={withSuspense(<ProjectDetail />)} />
         <Route path="/p/:projectId/n/:noteId" element={withSuspense(<NotePage />)} />
