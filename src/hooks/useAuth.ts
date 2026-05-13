@@ -28,6 +28,8 @@ export function useAuth() {
       }),
     signInWithPassword: (email: string, password: string) =>
       supabase.auth.signInWithPassword({ email, password }),
+    verifyEmailOtp: (email: string, token: string) =>
+      supabase.auth.verifyOtp({ email, token, type: 'email' }),
     signOut: () => supabase.auth.signOut(),
   };
 }

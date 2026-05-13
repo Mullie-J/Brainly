@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { Brain, Mail, ArrowRight, Loader2, Lock } from 'lucide-react';
+import { Brain, Mail, ArrowRight, Loader2, Lock, KeyRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Login() {
-  const { signInWithMagicLink, signInWithPassword } = useAuth();
+  const { signInWithMagicLink, signInWithPassword, verifyEmailOtp } = useAuth();
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error' | 'verifying'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
 
-  async function submit(e: React.FormEvent) {
+  async function submitMagicLink(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
     setStatus('sending');
@@ -22,6 +23,20 @@ export default function Login() {
     } else {
       setStatus('sent');
     }
+  }
+
+  async function submitCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || !code) return;
+    setStatus('verifying');
+    setError(null);
+    const { error } = await verifyEmailOtp(email, code.trim());
+    if (error) {
+      setError(error.message);
+      setStatus('sent'); // stay in sent state so user can retry
+    }
+    // On success, useAuth's onAuthStateChange will pick up the session
+    // and App will redirect away from /login automatically.
   }
 
   async function submitPassword(e: React.FormEvent) {
@@ -48,18 +63,69 @@ export default function Login() {
 
         <h1 className="text-2xl font-semibold mb-2 tracking-tight">Welkom terug</h1>
         <p className="text-muted mb-8 text-sm">
-          Voer je e-mail in. We sturen je een magic link.
+          Voer je e-mail in. We sturen je een 6-cijferige code én een magic link.
         </p>
 
-        {status === 'sent' ? (
-          <div className="rounded-lg border border-border bg-surface p-4 text-sm">
-            <p className="font-medium mb-1">Check je inbox</p>
-            <p className="text-muted">
-              We hebben een link gestuurd naar <span className="text-text">{email}</span>.
-            </p>
-          </div>
+        {status === 'sent' || status === 'verifying' ? (
+          <>
+            <div className="rounded-lg border border-border bg-surface p-4 text-sm mb-4">
+              <p className="font-medium mb-1">Check je inbox</p>
+              <p className="text-muted">
+                We hebben een mail gestuurd naar{' '}
+                <span className="text-text">{email}</span>. Typ de 6-cijferige
+                code hieronder — dat werkt het beste in deze app.
+              </p>
+            </div>
+
+            <form onSubmit={submitCode} className="space-y-3">
+              <div className="relative">
+                <KeyRound
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+                />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoFocus
+                  required
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-surface border border-border text-base font-mono tracking-[0.3em] text-center focus:border-accent transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={status === 'verifying' || code.length < 6}
+                className="w-full py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+              >
+                {status === 'verifying' ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    Inloggen <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+            </form>
+
+            <button
+              onClick={() => {
+                setStatus('idle');
+                setCode('');
+                setError(null);
+              }}
+              className="mt-4 text-xs text-muted hover:text-text transition-colors"
+            >
+              ← Andere e-mail gebruiken
+            </button>
+          </>
         ) : (
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submitMagicLink} className="space-y-3">
             <div className="relative">
               <Mail
                 size={16}
@@ -84,7 +150,7 @@ export default function Login() {
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <>
-                  Stuur magic link <ArrowRight size={16} />
+                  Stuur code <ArrowRight size={16} />
                 </>
               )}
             </button>
@@ -92,7 +158,7 @@ export default function Login() {
           </form>
         )}
 
-        {import.meta.env.DEV && status !== 'sent' && (
+        {import.meta.env.DEV && status !== 'sent' && status !== 'verifying' && (
           <div className="mt-6 pt-6 border-t border-border">
             {!showPassword ? (
               <button
