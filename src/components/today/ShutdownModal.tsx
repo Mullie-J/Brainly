@@ -71,44 +71,21 @@ export default function ShutdownModal({ open, onClose }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-12 md:pt-16 px-4 overflow-y-auto"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl bg-surface rounded-xl border border-border shadow-xl overflow-hidden my-8"
-      >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-gradient-to-b from-accent/5 to-transparent">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-accent/15 flex items-center justify-center">
-              <Moon size={16} className="text-accent" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold tracking-tight">
-                Shutdown ritual
-              </h2>
-              <p className="text-xs text-muted">
-                Sluit de dag af · plan de volgende
-              </p>
-            </div>
+    <div className="sd-shroud" onClick={onClose}>
+      <div className="sd" onClick={(e) => e.stopPropagation()}>
+        <div className="sd-head">
+          <div>
+            <div className="qa-eyebrow">// shutdown · {format(today, 'd MMM')}</div>
+            <h2 className="sd-title">Sluit de dag af</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-muted hover:text-text p-1"
-            aria-label="Sluit"
-          >
-            <X size={16} />
+          <button onClick={onClose} className="btn btn-ghost" aria-label="Sluit">
+            <X size={14} />
           </button>
         </div>
 
-        <div className="p-5 space-y-6">
-          {/* Today's Top 3 review */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-muted font-medium mb-2">
-              Vandaag's Top 3 — terugblik
-            </h3>
+            <h3 className="section-title">Vandaag's Top 3 — terugblik</h3>
             {todayTop3Todos.length === 0 ? (
               <p className="text-sm text-muted italic">
                 Geen Top 3 ingevuld vandaag.
@@ -151,25 +128,18 @@ export default function ShutdownModal({ open, onClose }: Props) {
             )}
           </section>
 
-          {/* Reflection */}
-          <section>
-            <h3 className="text-xs uppercase tracking-wider text-muted font-medium mb-2">
-              Wat ging goed · wat houdt je morgen vast?
-            </h3>
+          <section className="sd-q">
+            <label>Wat ging goed · wat houdt je morgen vast?</label>
             <textarea
               value={reflection}
               onChange={(e) => setReflection(e.target.value)}
               placeholder="2 zinnen is genoeg."
               rows={3}
-              className="w-full bg-surface2/40 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-accent resize-none"
             />
           </section>
 
-          {/* Tomorrow's top 3 */}
           <section>
-            <h3 className="text-xs uppercase tracking-wider text-muted font-medium mb-2">
-              Morgen — kies je Top 3
-            </h3>
+            <h3 className="section-title">Morgen — kies je Top 3</h3>
             <div className="space-y-1.5">
               {Array.from({ length: MAX }).map((_, i) => {
                 const id = tomorrowTop3[i];
@@ -214,28 +184,20 @@ export default function ShutdownModal({ open, onClose }: Props) {
             </div>
           </section>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-2">
-            <Link
-              to="/agenda"
-              onClick={onClose}
-              className="text-xs text-muted hover:text-text"
-            >
-              Open volledige agenda →
+          <div className="sd-foot" style={{ justifyContent: 'space-between' }}>
+            <Link to="/agenda" onClick={onClose} className="muted-text" style={{ fontSize: 12 }}>
+              Open agenda →
             </Link>
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="text-sm px-3 py-1.5 rounded-md text-muted hover:text-text hover:bg-surface2"
-              >
-                Annuleer
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={onClose} className="btn btn-ghost">
+                Later
               </button>
               <button
                 onClick={commit}
                 disabled={upsert.isPending}
-                className="text-sm px-4 py-1.5 rounded-md bg-accent text-white font-medium hover:opacity-90 disabled:opacity-50 inline-flex items-center gap-1.5"
+                className="btn btn-primary"
               >
-                Sluit dag af <ArrowRight size={13} />
+                <Moon size={13} /> Sluit dag af <ArrowRight size={13} />
               </button>
             </div>
           </div>

@@ -218,37 +218,36 @@ export default function WeekBoard() {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
-      {/* Week navigator */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setWeekOffset(weekOffset - 1)}
-            className="p-1.5 rounded-md hover:bg-surface2 text-muted hover:text-text"
-            aria-label="Vorige week"
-          >
-            <ChevronLeft size={15} />
-          </button>
-          <div className="text-sm font-medium tracking-tight">
-            {weekLabel}
-            <span className="ml-2 text-xs text-muted font-normal">
-              {format(weekStart, 'd MMM', { locale: nl })} –{' '}
-              {format(weekEnd, 'd MMM', { locale: nl })}
-            </span>
-          </div>
-          <button
-            onClick={() => setWeekOffset(weekOffset + 1)}
-            className="p-1.5 rounded-md hover:bg-surface2 text-muted hover:text-text"
-            aria-label="Volgende week"
-          >
-            <ChevronRight size={15} />
-          </button>
+      <div className="wkplanner" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div className="wkp-pool-head">
+        <button
+          onClick={() => setWeekOffset(weekOffset - 1)}
+          className="wkp-nav"
+          aria-label="Vorige week"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        <div className="wkp-range">
+          <span className="wkp-range-l">{weekLabel}</span>
+          <span className="muted-text font-mono-tight">
+            {format(weekStart, 'd MMM', { locale: nl })} –{' '}
+            {format(weekEnd, 'd MMM', { locale: nl })}
+          </span>
         </div>
+        <button
+          onClick={() => setWeekOffset(weekOffset + 1)}
+          className="wkp-nav"
+          aria-label="Volgende week"
+        >
+          <ChevronRight size={14} />
+        </button>
         {weekOffset !== 0 && (
           <button
             onClick={() => setWeekOffset(0)}
-            className="text-xs text-accent hover:underline"
+            className="btn btn-ghost"
+            style={{ marginLeft: 'auto' }}
           >
-            Terug naar deze week
+            Deze week
           </button>
         )}
       </div>
@@ -262,15 +261,14 @@ export default function WeekBoard() {
         projectMap={projectMap}
       />
 
-      {/* Werk: Mon-Fri */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-1.5 px-1">
-          <span className="text-xs uppercase tracking-wider text-muted font-medium">
-            💼 Werk
+      <section className="wkp-scope">
+        <div className="wkp-scope-head">
+          <span className="wkp-scope-l">
+            <span className="wkp-scope-icon">💼</span> Werk
           </span>
-          <div className="flex-1 h-px bg-border" />
+          <span className="muted-text wkp-scope-sub">ma – vr</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        <div className="wkp-row wkp-row-5">
           {workDays.map((day) => (
             <DayColumn
               key={`work-${day.dateStr}`}
@@ -291,17 +289,16 @@ export default function WeekBoard() {
             />
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Privé: Mon-Sun */}
-      <div>
-        <div className="flex items-center gap-2 mb-1.5 px-1">
-          <span className="text-xs uppercase tracking-wider text-muted font-medium">
-            🏡 Privé
+      <section className="wkp-scope">
+        <div className="wkp-scope-head">
+          <span className="wkp-scope-l">
+            <span className="wkp-scope-icon">🏡</span> Privé
           </span>
-          <div className="flex-1 h-px bg-border" />
+          <span className="muted-text wkp-scope-sub">ma – zo</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-2">
+        <div className="wkp-row wkp-row-7">
           {personalDays.map((day) => (
             <DayColumn
               key={`personal-${day.dateStr}`}
@@ -322,12 +319,13 @@ export default function WeekBoard() {
             />
           ))}
         </div>
-      </div>
+      </section>
 
-      <p className="mt-4 text-[11px] text-muted italic">
+      <p className="wkp-hint">
         Sleep een kaartje uit de pool naar een dag. Sleep tussen werk en privé
         om scope te wisselen. Sleep terug naar de pool om datum te wissen.
       </p>
+      </div>
 
       <DragOverlay>
         {activeTodo ? (
@@ -360,15 +358,8 @@ function Pool({
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' });
 
   return (
-    <div
-      ref={setNodeRef}
-      className={clsx(
-        'mb-3 rounded-lg border transition-colors',
-        isOver ? 'border-accent bg-accent/5' : 'border-border bg-surface2/30'
-      )}
-    >
-      {/* Tabs */}
-      <div className="flex items-center gap-0.5 px-2 pt-2">
+    <div ref={setNodeRef} className={clsx('wkp-pool', isOver && 'over')}>
+      <div className="wkp-pool-tabs">
         {pools.map((p) => {
           const Icon = p.icon;
           const isActive = activeId === p.id;
@@ -376,37 +367,26 @@ function Pool({
             <button
               key={p.id}
               onClick={() => onTabChange(p.id)}
-              className={clsx(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs transition-colors',
-                isActive
-                  ? 'bg-surface text-text shadow-sm'
-                  : 'text-muted hover:text-text'
-              )}
+              className={clsx('wkp-pool-tab', isActive && 'on')}
             >
-              <Icon size={12} className={isActive ? p.color : ''} />
+              <Icon size={12} />
               <span>{p.label}</span>
-              <span className="text-[10px] tabular-nums opacity-70">
-                {p.items.length}
-              </span>
+              <span className="wkp-pool-count tabular">{p.items.length}</span>
             </button>
           );
         })}
-        <Link
-          to="/todos"
-          className="ml-auto text-[11px] text-muted hover:text-text inline-flex items-center gap-1 pr-2"
-        >
-          <Layers size={11} /> Alle to-do's →
+        <Link to="/todos" className="wkp-pool-all">
+          <Layers size={11} /> Alle to-do's
         </Link>
       </div>
 
-      {/* Cards */}
-      <div className="p-2 flex flex-wrap gap-1.5 min-h-[60px]">
+      <div className="wkp-pool-grid">
         {active.items.length === 0 ? (
-          <p className="text-xs text-muted italic px-2 py-2">
+          <div className="wkp-pool-empty">
             {active.id === 'unscheduled' && 'Niets ongepland 🎯'}
             {active.id === 'overdue' && 'Niets overtijd 🎯'}
             {active.id === 'later' && 'Niets gepland voor later.'}
-          </p>
+          </div>
         ) : (
           active.items.map((t) => (
             <Card
@@ -447,39 +427,32 @@ function DayColumn({
     <div
       ref={setNodeRef}
       className={clsx(
-        'rounded-lg border bg-surface flex flex-col min-h-[180px] transition-colors',
-        today ? 'border-accent/40' : 'border-border',
-        isOver && 'bg-accent/10 border-accent',
-        scope === 'personal' && isWeekend && !today && 'bg-surface2/30'
+        'wkp-day',
+        today && 'tdy',
+        isOver && 'over'
       )}
+      style={
+        scope === 'personal' && isWeekend && !today
+          ? { background: 'rgb(var(--surface-2) / 0.4)' }
+          : undefined
+      }
     >
-      <div
-        className={clsx(
-          'px-2.5 py-1.5 border-b text-xs font-medium flex items-center justify-between',
-          today
-            ? 'border-accent/30 bg-accent/5 text-accent'
-            : 'border-border text-muted'
-        )}
-      >
-        <span>
-          <span className="uppercase tracking-wider">
-            {format(date, 'EEE', { locale: nl })}
-          </span>
-          <span className="ml-1.5 tabular-nums normal-case">
-            {format(date, 'd')}
-          </span>
+      <div className="wkp-day-head">
+        <span className="font-mono-tight muted-text">
+          {format(date, 'EEE', { locale: nl })}
+        </span>
+        <span className="tabular" style={{ fontSize: 14, fontWeight: 500 }}>
+          {format(date, 'd')}
         </span>
         {todos.length > 0 && (
-          <span className="text-[10px] tabular-nums opacity-60">
+          <span className="wkp-pool-count tabular" style={{ marginLeft: 'auto' }}>
             {todos.length}
           </span>
         )}
       </div>
-      <div className="p-1.5 flex flex-col gap-1 flex-1">
+      <div className="wkp-day-body">
         {todos.length === 0 ? (
-          <div className="text-[10px] text-muted italic text-center py-3">
-            Leeg
-          </div>
+          <div className="wkp-day-empty">Leeg</div>
         ) : (
           todos.map((t) => (
             <Card
@@ -530,31 +503,21 @@ function Card({
       ref={setNodeRef}
       style={style}
       className={clsx(
-        'group rounded-md border text-xs touch-none relative',
-        compact
-          ? 'bg-surface border-border px-2 py-1.5 max-w-[220px]'
-          : 'bg-surface border-border px-2 py-1.5',
-        dragging && 'shadow-lg rotate-1 ring-2 ring-accent/40',
-        'hover:border-accent/40 transition-colors'
+        compact ? 'wkp-card' : 'wkp-day-card',
+        dragging && 'dragging'
       )}
     >
-      {/* Scope indicator stripe (left edge) */}
-      <span
-        className={clsx(
-          'absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r',
-          todo.scope === 'personal' ? 'bg-emerald-500/70' : 'bg-accent/40'
-        )}
-      />
-      <div className="flex items-start gap-1.5">
+      <div className={compact ? 'wkp-card-meta' : 'wkp-day-card-top'} style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
         {onToggle && (
           <button
             onClick={onToggle}
             onPointerDown={(e) => e.stopPropagation()}
-            className="mt-0.5 shrink-0 text-muted hover:text-accent"
+            className="check"
             aria-label="Toggle done"
+            style={{ marginTop: 1 }}
           >
             {todo.status === 'done' ? (
-              <CheckCircle2 size={12} className="text-accent" />
+              <CheckCircle2 size={12} />
             ) : (
               <Circle size={12} />
             )}
@@ -563,21 +526,15 @@ function Card({
         <div
           {...attributes}
           {...listeners}
-          onClick={(e) => {
-            // Only treat as click (open) if no drag occurred
+          onClick={() => {
             if (!isDragging) openTodo(todo.id);
           }}
-          className="flex-1 min-w-0 cursor-grab active:cursor-grabbing"
+          style={{ flex: 1, minWidth: 0, cursor: 'grab' }}
         >
-          <div
-            className={clsx(
-              'truncate font-medium',
-              todo.status === 'done' && 'line-through text-muted'
-            )}
-          >
+          <div className={clsx(compact ? 'wkp-card-title' : 'wkp-day-card-title', todo.status === 'done' && 'strike')}>
             {todo.title}
           </div>
-          <div className="flex items-center gap-1 mt-0.5">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, flexWrap: 'wrap' }}>
             <PriorityBadge
               priority={todo.priority}
               onChange={onPriority}
@@ -586,16 +543,17 @@ function Card({
             {compact && todo.due_date && (
               <span
                 className={clsx(
-                  'text-[9px]',
-                  overdue ? 'text-red-500' : 'text-muted'
+                  overdue ? 'chip chip-overdue' : 'muted-text'
                 )}
+                style={{ fontSize: 10 }}
               >
                 {format(parseISO(todo.due_date), 'd MMM')}
               </span>
             )}
             {project && (
-              <span className="text-[9px] text-muted truncate">
-                {project.title}
+              <span className="proj-chip" style={{ maxWidth: 100 }}>
+                <span className="proj-swatch" style={{ background: 'var(--accent)' }} />
+                <span className="proj-chip-label">{project.title}</span>
               </span>
             )}
           </div>

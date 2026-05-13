@@ -3,8 +3,14 @@ import { useUI } from '@/store/ui';
 import { useProjects } from '@/hooks/useProjects';
 import { useCreateTodo } from '@/hooks/useTodos';
 import type { Priority, Scope } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
-import DateChip from './DateChip';
+import { Loader2, Plus, ChevronDown } from 'lucide-react';
+import { clsx } from 'clsx';
+import { format, addDays, startOfDay } from 'date-fns';
+import { nl } from 'date-fns/locale';
+
+function ymd(d: Date): string {
+  return format(d, 'yyyy-MM-dd');
+}
 
 export default function QuickAddTodo() {
   const { quickAddOpen, quickAddProjectId, closeQuickAdd } = useUI();
@@ -49,83 +55,144 @@ export default function QuickAddTodo() {
     closeQuickAdd();
   }
 
+  const today = startOfDay(new Date());
+  const tomorrow = addDays(today, 1);
+  const nextWeek = addDays(today, 7);
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/30"
-      onClick={closeQuickAdd}
-    >
-      <form
-        onSubmit={submit}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-surface rounded-xl border border-border shadow-xl overflow-hidden"
-      >
+    <div className="qa-shroud" onClick={closeQuickAdd}>
+      <form className="qa" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+        <div className="qa-head">
+          <span className="qa-eyebrow">// snelle to-do</span>
+          <kbd className="kbd">↵ opslaan · esc</kbd>
+        </div>
         <input
           autoFocus
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Wat moet er gebeuren?"
-          className="w-full px-4 py-3 bg-transparent text-base focus:outline-none border-b border-border"
+          className="qa-title"
+          style={{ background: 'transparent' }}
         />
-        <div className="flex items-center gap-2 p-3 flex-wrap">
-          {/* Scope toggle */}
-          <div className="flex items-center gap-0.5 bg-surface2/50 rounded-md p-0.5">
-            <button
-              type="button"
-              onClick={() => setScope('work')}
-              className={`text-xs px-2 py-1 rounded transition-colors ${
-                scope === 'work' ? 'bg-surface shadow-sm' : 'text-muted hover:text-text'
-              }`}
-            >
-              💼 Werk
-            </button>
-            <button
-              type="button"
-              onClick={() => setScope('personal')}
-              className={`text-xs px-2 py-1 rounded transition-colors ${
-                scope === 'personal' ? 'bg-surface shadow-sm' : 'text-muted hover:text-text'
-              }`}
-            >
-              🏡 Privé
-            </button>
+        <div className="qa-controls">
+          <div className="qa-group">
+            <span className="qa-label font-mono-tight">scope</span>
+            <div className="seg">
+              <button
+                type="button"
+                onClick={() => setScope('work')}
+                className={clsx('seg-btn', scope === 'work' && 'on')}
+              >
+                💼 Werk
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope('personal')}
+                className={clsx('seg-btn', scope === 'personal' && 'on')}
+              >
+                🏡 Privé
+              </button>
+            </div>
+          </div>
+
+          <div className="qa-group">
+            <span className="qa-label font-mono-tight">prioriteit</span>
+            <div className="seg">
+              {([1, 2, 3] as Priority[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPriority(p)}
+                  className={clsx(
+                    'seg-btn',
+                    `pri-seg-${p}`,
+                    priority === p && 'on'
+                  )}
+                >
+                  P{p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="qa-group">
+            <span className="qa-label font-mono-tight">deadline</span>
+            <div className="qa-dates">
+              <button
+                type="button"
+                onClick={() => setDueDate(ymd(today))}
+                className={clsx('pill', dueDate === ymd(today) && 'on')}
+              >
+                Vandaag
+              </button>
+              <button
+                type="button"
+                onClick={() => setDueDate(ymd(tomorrow))}
+                className={clsx('pill', dueDate === ymd(tomorrow) && 'on')}
+              >
+                Morgen
+              </button>
+              <button
+                type="button"
+                onClick={() => setDueDate(ymd(nextWeek))}
+                className={clsx('pill', dueDate === ymd(nextWeek) && 'on')}
+              >
+                +1w
+              </button>
+              <input
+                type="date"
+                value={dueDate ?? ''}
+                onChange={(e) => setDueDate(e.target.value || null)}
+                className="qa-date"
+              />
+              {dueDate && (
+                <span className="muted-text font-mono-tight">
+                  {format(new Date(dueDate), 'd MMM', { locale: nl })}
+                </span>
+              )}
+            </div>
           </div>
 
           {scope === 'work' && (
-            <select
-              value={projectId ?? ''}
-              onChange={(e) => setProjectId(e.target.value || null)}
-              className="text-sm bg-surface2 border border-border rounded-md px-2 py-1.5 focus:outline-none"
-            >
-              <option value="">📥 Inbox</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
+            <div className="qa-group">
+              <span className="qa-label font-mono-tight">project</span>
+              <div className="select-wrap qa-proj-select">
+                <select
+                  value={projectId ?? ''}
+                  onChange={(e) => setProjectId(e.target.value || null)}
+                >
+                  <option value="">📥 Inbox (geen project)</option>
+                  {projects
+                    .filter((p) => p.status === 'active')
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.title}
+                      </option>
+                    ))}
+                </select>
+                <ChevronDown size={11} className="select-chev" />
+              </div>
+            </div>
           )}
-          <div className="flex items-center gap-1">
-            {([1, 2, 3] as Priority[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPriority(p)}
-                className={`text-xs px-2 py-1 rounded-md border transition-colors ${
-                  priority === p
-                    ? 'border-accent text-accent bg-accent/10'
-                    : 'border-border text-muted hover:text-text'
-                }`}
-              >
-                P{p}
-              </button>
-            ))}
-          </div>
-          <DateChip value={dueDate} onChange={setDueDate} size="md" />
+        </div>
+        <div className="qa-foot">
+          <button
+            type="button"
+            onClick={closeQuickAdd}
+            className="btn btn-ghost"
+          >
+            Annuleer
+          </button>
           <button
             type="submit"
             disabled={!title.trim() || create.isPending}
-            className="ml-auto text-sm px-3 py-1.5 rounded-md bg-accent text-white font-medium disabled:opacity-50 flex items-center gap-1.5"
+            className="btn btn-primary"
           >
-            {create.isPending && <Loader2 size={14} className="animate-spin" />}
+            {create.isPending ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Plus size={13} />
+            )}
             Toevoegen
           </button>
         </div>

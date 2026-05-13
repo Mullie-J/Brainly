@@ -19,10 +19,10 @@ import { useProjects } from '@/hooks/useProjects';
 import { useUI } from '@/store/ui';
 import type { Todo } from '@/lib/types';
 
-const PRIORITY_DOT: Record<number, string> = {
-  1: 'bg-red-500',
-  2: 'bg-amber-500',
-  3: 'bg-emerald-500',
+const PRIORITY_COLOR: Record<number, string> = {
+  1: 'rgb(var(--rose))',
+  2: 'rgb(var(--amber))',
+  3: 'rgb(var(--emerald))',
 };
 
 export default function MonthGrid() {
@@ -68,22 +68,23 @@ export default function MonthGrid() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="wkp-pool-head" style={{ marginBottom: 12 }}>
         <button
           onClick={() => setCursor(subMonths(cursor, 1))}
-          className="p-1.5 rounded-md hover:bg-surface2 text-muted hover:text-text"
+          className="wkp-nav"
           aria-label="Vorige maand"
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={14} />
         </button>
-        <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold tracking-tight capitalize">
+        <div className="wkp-range" style={{ flex: 1, justifyContent: 'center' }}>
+          <span className="wkp-range-l" style={{ textTransform: 'capitalize' }}>
             {format(cursor, 'MMMM yyyy', { locale: nl })}
-          </h2>
+          </span>
           {!isSameMonth(cursor, new Date()) && (
             <button
               onClick={() => setCursor(new Date())}
-              className="text-xs text-muted hover:text-text px-2 py-0.5 rounded border border-border"
+              className="btn btn-ghost"
+              style={{ fontSize: 11, padding: '3px 8px' }}
             >
               Vandaag
             </button>
@@ -91,18 +92,35 @@ export default function MonthGrid() {
         </div>
         <button
           onClick={() => setCursor(addMonths(cursor, 1))}
-          className="p-1.5 rounded-md hover:bg-surface2 text-muted hover:text-text"
+          className="wkp-nav"
           aria-label="Volgende maand"
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={14} />
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-px bg-border border border-border rounded-lg overflow-hidden">
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gap: 1,
+          background: 'rgb(var(--border))',
+          border: '1px solid rgb(var(--border))',
+          borderRadius: 'var(--radius-lg)',
+          overflow: 'hidden',
+        }}
+      >
         {weekdayLabels.map((d) => (
           <div
             key={d}
-            className="bg-surface2/50 text-[10px] uppercase tracking-wider text-muted font-medium px-2 py-1.5 text-center"
+            className="font-mono-tight muted-text"
+            style={{
+              background: 'rgb(var(--surface-2) / 0.6)',
+              padding: '6px 8px',
+              textAlign: 'center',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+            }}
           >
             {d}
           </div>
@@ -115,27 +133,46 @@ export default function MonthGrid() {
           return (
             <div
               key={key}
-              className={clsx(
-                'bg-surface min-h-[96px] p-1.5 flex flex-col gap-1 text-left',
-                !inMonth && 'opacity-40'
-              )}
+              className={clsx(!inMonth && 'opacity-40')}
+              style={{
+                background: 'rgb(var(--surface))',
+                minHeight: 100,
+                padding: 6,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+                opacity: inMonth ? 1 : 0.4,
+              }}
             >
-              <div className="flex items-center justify-between">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span
-                  className={clsx(
-                    'text-xs tabular-nums',
+                  className="tabular"
+                  style={
                     isCurrent
-                      ? 'bg-accent text-white rounded-full w-5 h-5 flex items-center justify-center font-medium'
-                      : 'text-muted px-1'
-                  )}
+                      ? {
+                          background: 'var(--accent)',
+                          color: 'var(--accent-fg)',
+                          borderRadius: 999,
+                          width: 20,
+                          height: 20,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 600,
+                          fontSize: 11,
+                        }
+                      : { color: 'rgb(var(--muted))', fontSize: 11, padding: '0 4px' }
+                  }
                 >
                   {format(day, 'd')}
                 </span>
                 {dayTodos.length > 3 && (
-                  <span className="text-[9px] text-muted">+{dayTodos.length - 3}</span>
+                  <span className="muted-text" style={{ fontSize: 10 }}>
+                    +{dayTodos.length - 3}
+                  </span>
                 )}
               </div>
-              <div className="flex flex-col gap-0.5">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {dayTodos.slice(0, 3).map((t) => {
                   const project = t.project_id ? projectMap.get(t.project_id) : null;
                   return (
@@ -143,15 +180,29 @@ export default function MonthGrid() {
                       key={t.id}
                       onClick={() => openTodo(t.id)}
                       title={`${t.title}${project ? ` · ${project.title}` : ''}`}
-                      className="group flex items-center gap-1 px-1 py-0.5 rounded text-[11px] bg-surface2 hover:bg-accent/10 text-left"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '2px 4px',
+                        borderRadius: 4,
+                        fontSize: 11,
+                        background: 'rgb(var(--surface-2))',
+                        textAlign: 'left',
+                      }}
                     >
                       <span
-                        className={clsx(
-                          'w-1.5 h-1.5 rounded-full shrink-0',
-                          PRIORITY_DOT[t.priority]
-                        )}
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: 999,
+                          flexShrink: 0,
+                          background: PRIORITY_COLOR[t.priority],
+                        }}
                       />
-                      <span className="truncate">{t.title}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {t.title}
+                      </span>
                     </button>
                   );
                 })}

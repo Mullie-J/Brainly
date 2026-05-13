@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { clsx } from 'clsx';
 import {
   X,
   Trash2,
@@ -182,62 +183,44 @@ export default function TodoDetail() {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center pt-12 md:pt-16 px-4 overflow-y-auto"
-      onClick={closeTodo}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-surface rounded-xl border border-border shadow-xl overflow-hidden my-8"
-      >
-        {/* Header */}
-        <div className="px-5 py-3 border-b border-border flex items-center gap-3">
+    <div className="td-shroud" onClick={closeTodo}>
+      <aside className="td" onClick={(e) => e.stopPropagation()}>
+        <div className="td-head">
           <button
             onClick={() =>
               patch({ status: todo.status === 'done' ? 'todo' : 'done' })
             }
-            className="shrink-0 text-muted hover:text-accent"
+            className="check"
             aria-label="Toggle done"
           >
             {todo.status === 'done' ? (
-              <CheckCircle2 size={20} className="text-accent" />
+              <CheckCircle2 size={20} />
             ) : (
               <Circle size={20} />
             )}
           </button>
-          <span className="text-xs text-muted truncate">
+          <span className="page-eyebrow" style={{ margin: 0, flex: 1, minWidth: 0 }}>
             {project ? (
               <Link
                 to={`/p/${project.id}`}
                 onClick={closeTodo}
-                className="hover:text-accent inline-flex items-center gap-1"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
                 {project.title} <ExternalLink size={10} />
               </Link>
             ) : (
-              <span className="italic">Zonder project</span>
+              <span style={{ fontStyle: 'italic' }}>Zonder project</span>
             )}
           </span>
-          <div className="ml-auto flex items-center gap-1">
-            <button
-              onClick={handleDelete}
-              className="p-1.5 rounded-md text-muted hover:text-red-500 hover:bg-surface2"
-              aria-label="Verwijder"
-            >
-              <Trash2 size={14} />
-            </button>
-            <button
-              onClick={closeTodo}
-              className="p-1.5 rounded-md text-muted hover:text-text hover:bg-surface2"
-              aria-label="Sluit"
-            >
-              <X size={16} />
-            </button>
-          </div>
+          <button onClick={handleDelete} className="btn btn-ghost" aria-label="Verwijder">
+            <Trash2 size={14} />
+          </button>
+          <button onClick={closeTodo} className="btn btn-ghost" aria-label="Sluit">
+            <X size={14} />
+          </button>
         </div>
 
-        <div className="p-5 space-y-5">
-          {/* Title */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -249,9 +232,8 @@ export default function TodoDetail() {
               }
             }}
             placeholder="Wat moet er gebeuren?"
-            className={`w-full text-xl font-semibold tracking-tight bg-transparent focus:outline-none placeholder:text-muted/50 ${
-              todo.status === 'done' ? 'line-through text-muted' : ''
-            }`}
+            className={clsx('td-title', todo.status === 'done' && 'strike')}
+            style={{ background: 'transparent', border: 'none' }}
           />
 
           {/* Meta chips row */}
@@ -513,7 +495,7 @@ export default function TodoDetail() {
             )}
           </div>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }

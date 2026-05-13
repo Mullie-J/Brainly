@@ -117,10 +117,12 @@ export default function DayGrid({ dateStr }: Props) {
   return (
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4">
-        {/* Day grid */}
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2 border-b border-border text-xs uppercase tracking-wider text-muted font-medium">
-            {format(parseISO(dateStr), 'EEEE d MMMM')}
+        <div className="day-grid">
+          <div className="day-grid-head">
+            <span className="dgh-day">{format(parseISO(dateStr), 'EEEE d MMMM')}</span>
+            <span className="dgh-hint muted-text font-mono-tight">
+              dubbel-klik voor nieuwe to-do
+            </span>
           </div>
           <div ref={gridRef} className="relative">
             {/* Hour rows */}
@@ -158,8 +160,15 @@ export default function DayGrid({ dateStr }: Props) {
               ))}
             </div>
           </div>
-          <p className="px-4 py-2 text-[10px] text-muted border-t border-border">
-            Double-click op een slot voor nieuwe to-do · Sleep naar links voor ongepland
+          <p
+            className="muted-text font-mono-tight"
+            style={{
+              padding: '8px 16px',
+              borderTop: '1px solid rgb(var(--border))',
+              fontSize: 11,
+            }}
+          >
+            Dubbel-klik op een slot voor nieuwe to-do · Sleep naar links voor ongepland
           </p>
         </div>
 
