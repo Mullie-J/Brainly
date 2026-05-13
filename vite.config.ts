@@ -46,6 +46,13 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/, /supabase\.co/],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         maximumFileSizeToCacheInBytes: 5_000_000,
+        // Activeer nieuwe service worker direct + claim alle clients zonder
+        // herlaad. In combinatie met registerType: 'autoUpdate' krijgt de
+        // gebruiker de nieuwste versie zodra Vercel een nieuwe build heeft.
+        skipWaiting: true,
+        clientsClaim: true,
+        // Forceer cleanup van oude precaches om stale chunks te voorkomen
+        cleanupOutdatedCaches: true,
       },
       devOptions: {
         enabled: true, // Service worker ook in dev — voor mobile testen vanaf je laptop

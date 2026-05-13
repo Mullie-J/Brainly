@@ -1471,8 +1471,27 @@
   /* Kanban: better card touch targets */
   .kcard { padding: 12px; min-height: 56px; }
 
-  /* Sidebar (drawer) — safe top/bottom padding */
-  .app-sidebar-wrap { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+  /* Sidebar (drawer) — safe top/bottom padding + reliable scroll layout */
+  .app-sidebar-wrap {
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+  }
+  /* Footer pinned to the bottom of the visible drawer so the theme switcher
+     + user row are always reachable, even when the projects/notes list
+     overflows. */
+  .sb-footer {
+    position: sticky;
+    bottom: 0;
+    background: rgb(var(--surface));
+    z-index: 2;
+  }
   .sb-item, .sb-proj, .sb-quick-btn, .sb-search {
     min-height: 40px;
   }
