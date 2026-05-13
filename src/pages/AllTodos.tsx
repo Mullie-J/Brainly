@@ -21,6 +21,7 @@ import {
 } from '@/hooks/useTodoActions';
 import { useProjects } from '@/hooks/useProjects';
 import { useUI } from '@/store/ui';
+import { useTodoContextMenu } from '@/hooks/useTodoContextMenu';
 import PriorityBadge from '@/components/todo/PriorityBadge';
 import BulkActionBar from '@/components/todo/BulkActionBar';
 import type { Todo, TodoStatus, Priority } from '@/lib/types';
@@ -293,7 +294,9 @@ function Row({
   onPriority: (p: Priority) => void;
 }) {
   const openTodo = useUI((s) => s.openTodo);
+  const { contextMenuProps, menu } = useTodoContextMenu(todo);
   return (
+    <>
     <div
       className={clsx('row', todo.status === 'done' && 'row-done')}
       style={
@@ -304,6 +307,7 @@ function Row({
             }
           : undefined
       }
+      {...contextMenuProps}
     >
       <button
         onClick={onSelect}
@@ -370,6 +374,8 @@ function Row({
         </span>
       </button>
     </div>
+    {menu}
+    </>
   );
 }
 

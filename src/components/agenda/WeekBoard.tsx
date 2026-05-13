@@ -37,6 +37,7 @@ import { clsx } from 'clsx';
 import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
 import { useProjects } from '@/hooks/useProjects';
 import { useUI } from '@/store/ui';
+import { useTodoContextMenu } from '@/hooks/useTodoContextMenu';
 import PriorityBadge from '@/components/todo/PriorityBadge';
 import type { Todo, Priority, Scope } from '@/lib/types';
 
@@ -485,6 +486,7 @@ function Card({
   onPriority?: (p: Priority) => void;
 }) {
   const openTodo = useUI((s) => s.openTodo);
+  const { contextMenuProps, menu } = useTodoContextMenu(todo);
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: `todo:${todo.id}` });
 
@@ -499,9 +501,11 @@ function Card({
     todo.due_date && isPast(parseISO(todo.due_date)) && !isToday(parseISO(todo.due_date));
 
   return (
+    <>
     <div
       ref={setNodeRef}
       style={style}
+      {...contextMenuProps}
       className={clsx(
         compact ? 'wkp-card' : 'wkp-day-card',
         dragging && 'dragging'
@@ -560,5 +564,7 @@ function Card({
         </div>
       </div>
     </div>
+    {menu}
+    </>
   );
 }

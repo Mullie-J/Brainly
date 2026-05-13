@@ -27,6 +27,7 @@ import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
 import { useProjects } from '@/hooks/useProjects';
 import { useUI } from '@/store/ui';
 import { currentWeekStart, useWeeklyReview } from '@/hooks/useWeeklyReview';
+import { useTodoContextMenu } from '@/hooks/useTodoContextMenu';
 import PriorityBadge from '@/components/todo/PriorityBadge';
 import Top3 from '@/components/today/Top3';
 import ShutdownModal from '@/components/today/ShutdownModal';
@@ -287,66 +288,102 @@ function Timeline({
           const isNext = !isNow && !isPastItem && i === firstUpcoming;
           const project = t.project_id ? projectMap.get(t.project_id) : null;
           return (
-            <li
+            <TimelineItem
               key={t.id}
-              className={clsx(
-                'tl-item',
-                isPastItem && 'tl-past',
-                isNow && 'tl-now',
-                isNext && 'tl-next'
-              )}
-            >
-              <div className="tl-time">
-                <span className="tabular tl-start">{t.start_time}</span>
-                {t.duration_min && (
-                  <span className="tl-dur">{formatMin(t.duration_min)}</span>
-                )}
-              </div>
-              <div className="tl-rail">
-                <span className="tl-dot" />
-                {i < items.length - 1 && <span className="tl-line" />}
-              </div>
-              <button onClick={() => openTodo(t.id)} className="tl-body">
-                <span className="tl-marker">
-                  {isNow && <span className="tl-badge tl-badge-now">nu</span>}
-                  {isNext && <span className="tl-badge tl-badge-next">straks</span>}
-                </span>
-                <span className={clsx('tl-title', t.status === 'done' && 'strike')}>
-                  {t.title}
-                </span>
-                <span className="tl-meta">
-                  <PriorityBadge priority={t.priority} />
-                  {project && (
-                    <span className="proj-chip">
-                      <span
-                        className="proj-swatch"
-                        style={{ background: 'var(--accent)' }}
-                      />
-                      <span className="proj-chip-label">{project.title}</span>
-                    </span>
-                  )}
-                  {t.status === 'doing' && <span className="meta-doing">· bezig</span>}
-                </span>
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggle(t.id, t.status);
-                }}
-                className="check tl-check"
-                aria-label="Afvinken"
-              >
-                {t.status === 'done' ? (
-                  <CheckCircle2 size={15} />
-                ) : (
-                  <Circle size={15} />
-                )}
-              </button>
-            </li>
+              todo={t}
+              project={project}
+              isPastItem={isPastItem}
+              isNow={isNow}
+              isNext={isNext}
+              hasLine={i < items.length - 1}
+              onToggle={onToggle}
+            />
           );
         })}
       </ol>
     </section>
+  );
+}
+
+function TimelineItem({
+  todo: t,
+  project,
+  isPastItem,
+  isNow,
+  isNext,
+  hasLine,
+  onToggle,
+}: {
+  todo: Todo;
+  project: any;
+  isPastItem: boolean;
+  isNow: boolean;
+  isNext: boolean;
+  hasLine: boolean;
+  onToggle: (id: string, status: Todo['status']) => void;
+}) {
+  const openTodo = useUI((s) => s.openTodo);
+  const { contextMenuProps, menu } = useTodoContextMenu(t);
+  return (
+    <>
+      <li
+        className={clsx(
+          'tl-item',
+          isPastItem && 'tl-past',
+          isNow && 'tl-now',
+          isNext && 'tl-next'
+        )}
+        {...contextMenuProps}
+      >
+        <div className="tl-time">
+          <span className="tabular tl-start">{t.start_time}</span>
+          {t.duration_min && (
+            <span className="tl-dur">{formatMin(t.duration_min)}</span>
+          )}
+        </div>
+        <div className="tl-rail">
+          <span className="tl-dot" />
+          {hasLine && <span className="tl-line" />}
+        </div>
+        <button onClick={() => openTodo(t.id)} className="tl-body">
+          <span className="tl-marker">
+            {isNow && <span className="tl-badge tl-badge-now">nu</span>}
+            {isNext && <span className="tl-badge tl-badge-next">straks</span>}
+          </span>
+          <span className={clsx('tl-title', t.status === 'done' && 'strike')}>
+            {t.title}
+          </span>
+          <span className="tl-meta">
+            <PriorityBadge priority={t.priority} />
+            {project && (
+              <span className="proj-chip">
+                <span
+                  className="proj-swatch"
+                  style={{ background: 'var(--accent)' }}
+                />
+                <span className="proj-chip-label">{project.title}</span>
+              </span>
+            )}
+            {t.status === 'doing' && <span className="meta-doing">· bezig</span>}
+          </span>
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(t.id, t.status);
+          }}
+          className="check tl-check"
+          aria-label="Afvinken"
+        >
+          {t.status === 'done' ? (
+            <CheckCircle2 size={15} />
+          ) : (
+            <Circle size={15} />
+          )}
+        </button>
+      </li>
+      {menu}
+    </>
   );
 }
 
@@ -393,8 +430,13 @@ function TodoRow({
   update: ReturnType<typeof useUpdateTodo>;
 }) {
   const openTodo = useUI((s) => s.openTodo);
+  const { contextMenuProps, menu } = useTodoContextMenu(todo);
   return (
-    <div className={clsx('row', todo.status === 'done' && 'row-done')}>
+    <>
+    <div
+      className={clsx('row', todo.status === 'done' && 'row-done')}
+      {...contextMenuProps}
+    >
       <button
         onClick={() =>
           update.mutate({
@@ -448,6 +490,8 @@ function TodoRow({
         </span>
       </button>
     </div>
+    {menu}
+    </>
   );
 }
 

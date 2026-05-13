@@ -23,6 +23,7 @@ import { clsx } from 'clsx';
 import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
 import { useProjects } from '@/hooks/useProjects';
 import { useUI } from '@/store/ui';
+import { useTodoContextMenu } from '@/hooks/useTodoContextMenu';
 import PriorityBadge from '@/components/todo/PriorityBadge';
 import DateChip from '@/components/todo/DateChip';
 import DayGrid from '@/components/agenda/DayGrid';
@@ -323,8 +324,13 @@ function AgendaRow({
   update: ReturnType<typeof useUpdateTodo>;
 }) {
   const openTodo = useUI((s) => s.openTodo);
+  const { contextMenuProps, menu } = useTodoContextMenu(t);
   return (
-    <div className="group flex items-start gap-2.5 px-3 py-2 bg-surface border border-border rounded-md text-sm hover:border-accent/40 transition-colors">
+    <>
+    <div
+      className="group flex items-start gap-2.5 px-3 py-2 bg-surface border border-border rounded-md text-sm hover:border-accent/40 transition-colors"
+      {...contextMenuProps}
+    >
       <button
         onClick={() =>
           update.mutate({
@@ -374,5 +380,7 @@ function AgendaRow({
         </div>
       </button>
     </div>
+    {menu}
+    </>
   );
 }

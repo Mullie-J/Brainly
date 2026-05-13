@@ -6,17 +6,17 @@ import { clsx } from 'clsx';
 import type { Todo, Priority } from '@/lib/types';
 import { useUpdateTodo } from '@/hooks/useTodos';
 import { useDeleteTodoWithUndo } from '@/hooks/useTodoActions';
+import { useTodoContextMenu } from '@/hooks/useTodoContextMenu';
 import { useUI } from '@/store/ui';
 import PriorityBadge from './PriorityBadge';
 import DateChip from './DateChip';
-import TodoContextMenu, { type ContextMenuPos } from './TodoContextMenu';
 
 export default function TodoCard({ todo }: { todo: Todo }) {
   const update = useUpdateTodo();
   const deleteWithUndo = useDeleteTodoWithUndo();
   const openTodo = useUI((s) => s.openTodo);
   const [hover, setHover] = useState(false);
-  const [menuPos, setMenuPos] = useState<ContextMenuPos | null>(null);
+  const { contextMenuProps, menu } = useTodoContextMenu(todo);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: todo.id });
@@ -34,10 +34,7 @@ export default function TodoCard({ todo }: { todo: Todo }) {
       style={style}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setMenuPos({ x: e.clientX, y: e.clientY });
-      }}
+      {...contextMenuProps}
       className="group bg-surface border border-border rounded-md p-2.5 text-sm hover:border-accent/40 hover:shadow-sm transition-all touch-none"
     >
       <div className="flex items-start gap-2">
@@ -118,21 +115,7 @@ export default function TodoCard({ todo }: { todo: Todo }) {
         </div>
       </div>
     </div>
-    {menuPos && (
-      <TodoContextMenu
-        todo={todo}
-        pos={menuPos}
-        onClose={() => setMenuPos(null)}
-        onSnooze={(due_date) => update.mutate({ id: todo.id, patch: { due_date } })}
-        onToggleDone={() =>
-          update.mutate({
-            id: todo.id,
-            patch: { status: todo.status === 'done' ? 'todo' : 'done' },
-          })
-        }
-        onDelete={() => deleteWithUndo(todo)}
-      />
-    )}
+    {menu}
     </>
   );
 }

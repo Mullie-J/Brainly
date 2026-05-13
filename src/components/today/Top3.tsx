@@ -14,6 +14,7 @@ import type { Todo } from '@/lib/types';
 import { useDailyPlan, useUpsertDailyPlan } from '@/hooks/useDailyPlan';
 import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
 import { useProjects } from '@/hooks/useProjects';
+import { useTodoContextMenu } from '@/hooks/useTodoContextMenu';
 import PriorityBadge from '@/components/todo/PriorityBadge';
 
 const MAX_TOP3 = 3;
@@ -107,60 +108,19 @@ export default function Top3({ date }: { date: Date }) {
           }
           const project = t.project_id ? projectMap.get(t.project_id) : null;
           return (
-            <div
+            <Top3Slot
               key={t.id}
-              className={clsx('top3-slot', t.status === 'done' && 'top3-slot-done')}
-            >
-              <button
-                onClick={() =>
-                  updateTodo.mutate({
-                    id: t.id,
-                    patch: { status: t.status === 'done' ? 'todo' : 'done' },
-                  })
-                }
-                className="check"
-                aria-label="Toggle"
-              >
-                {t.status === 'done' ? (
-                  <CheckCircle2 size={17} />
-                ) : (
-                  <Circle size={17} />
-                )}
-              </button>
-              <span className="top3-num filled">{i + 1}</span>
-              <div className="top3-body">
-                <span
-                  className={clsx(
-                    'top3-title-text',
-                    t.status === 'done' && 'strike'
-                  )}
-                >
-                  {t.title}
-                </span>
-                <span className="row-meta">
-                  <PriorityBadge priority={t.priority} />
-                  {project && (
-                    <Link
-                      to={`/p/${project.id}`}
-                      className="proj-chip"
-                    >
-                      <span
-                        className="proj-swatch"
-                        style={{ background: 'var(--accent)' }}
-                      />
-                      <span className="proj-chip-label">{project.title}</span>
-                    </Link>
-                  )}
-                </span>
-              </div>
-              <button
-                onClick={() => remove(t.id)}
-                className="top3-remove"
-                aria-label="Verwijder uit Top 3"
-              >
-                <X size={13} />
-              </button>
-            </div>
+              todo={t}
+              index={i}
+              project={project}
+              onToggle={() =>
+                updateTodo.mutate({
+                  id: t.id,
+                  patch: { status: t.status === 'done' ? 'todo' : 'done' },
+                })
+              }
+              onRemove={() => remove(t.id)}
+            />
           );
         })}
       </div>
@@ -220,5 +180,65 @@ export default function Top3({ date }: { date: Date }) {
         </div>
       )}
     </section>
+  );
+}
+
+function Top3Slot({
+  todo: t,
+  index,
+  project,
+  onToggle,
+  onRemove,
+}: {
+  todo: Todo;
+  index: number;
+  project: any;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
+  const { contextMenuProps, menu } = useTodoContextMenu(t);
+  return (
+    <>
+      <div
+        className={clsx('top3-slot', t.status === 'done' && 'top3-slot-done')}
+        {...contextMenuProps}
+      >
+        <button onClick={onToggle} className="check" aria-label="Toggle">
+          {t.status === 'done' ? (
+            <CheckCircle2 size={17} />
+          ) : (
+            <Circle size={17} />
+          )}
+        </button>
+        <span className="top3-num filled">{index + 1}</span>
+        <div className="top3-body">
+          <span
+            className={clsx('top3-title-text', t.status === 'done' && 'strike')}
+          >
+            {t.title}
+          </span>
+          <span className="row-meta">
+            <PriorityBadge priority={t.priority} />
+            {project && (
+              <Link to={`/p/${project.id}`} className="proj-chip">
+                <span
+                  className="proj-swatch"
+                  style={{ background: 'var(--accent)' }}
+                />
+                <span className="proj-chip-label">{project.title}</span>
+              </Link>
+            )}
+          </span>
+        </div>
+        <button
+          onClick={onRemove}
+          className="top3-remove"
+          aria-label="Verwijder uit Top 3"
+        >
+          <X size={13} />
+        </button>
+      </div>
+      {menu}
+    </>
   );
 }
