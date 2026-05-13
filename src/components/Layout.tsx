@@ -1,6 +1,5 @@
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Menu } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Menu, Brain, Search } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useUI } from '@/store/ui';
 import { useEffect } from 'react';
@@ -15,7 +14,6 @@ export default function Layout() {
   const createNote = useCreateNote();
   const navigate = useNavigate();
 
-  // Global shortcuts
   useEffect(() => {
     async function onKey(e: KeyboardEvent) {
       const meta = e.metaKey || e.ctrlKey;
@@ -42,51 +40,34 @@ export default function Layout() {
   }, [setPaletteOpen, openQuickAdd, createNote, navigate]);
 
   return (
-    <div className="h-screen flex">
-      {/* Desktop sidebar */}
-      <div className="hidden md:block shrink-0">
+    <div className="app" data-sb-open={sidebarOpen ? 'true' : 'false'}>
+      <div className="app-sidebar-wrap">
         <Sidebar />
       </div>
-
-      {/* Mobile sidebar (drawer) */}
-      <div
-        className={clsx(
-          'md:hidden fixed inset-0 z-40 transition-opacity',
-          sidebarOpen ? 'pointer-events-auto' : 'pointer-events-none'
-        )}
-      >
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className={clsx(
-            'absolute inset-0 bg-black transition-opacity',
-            sidebarOpen ? 'opacity-30' : 'opacity-0'
-          )}
-        />
-        <div
-          className={clsx(
-            'absolute left-0 top-0 bottom-0 transition-transform',
-            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          )}
-        >
-          <Sidebar />
-        </div>
-      </div>
-
-      {/* Main */}
-      <main className="flex-1 min-w-0 flex flex-col">
-        {/* Mobile top bar */}
-        <div className="md:hidden flex items-center gap-2 px-3 py-2 border-b border-border bg-surface">
+      {sidebarOpen && (
+        <div className="sb-backdrop" onClick={() => setSidebarOpen(false)} />
+      )}
+      <main className="main">
+        <div className="topbar">
           <button
+            className="topbar-menu"
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-md hover:bg-surface2"
             aria-label="Menu"
           >
             <Menu size={18} />
           </button>
-          <span className="font-semibold tracking-tight">Brainly</span>
+          <div className="topbar-brand">
+            <Brain size={14} /> Brainly
+          </div>
+          <button
+            className="topbar-search"
+            onClick={() => setPaletteOpen(true)}
+            aria-label="Zoek"
+          >
+            <Search size={16} />
+          </button>
         </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="main-scroll">
           <Outlet />
         </div>
       </main>

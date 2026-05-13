@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Claude Code workspace state
 .claude/
+
+# Claude Design prototype reference (local only — not deployed)
+design-reference/

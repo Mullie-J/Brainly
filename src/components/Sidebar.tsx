@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   Brain,
   ListTodo,
@@ -28,6 +28,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { isToday, parseISO, isPast } from 'date-fns';
 import { useState } from 'react';
 
+function projectAccent(id: string): string {
+  // Map project id → consistent hue around the color wheel. Stable per id.
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+  const hue = Math.abs(hash) % 360;
+  return `oklch(70% 0.12 ${hue})`;
+}
+
 function NavItem({
   to,
   icon: Icon,
@@ -46,18 +54,13 @@ function NavItem({
       to={to}
       onClick={onClick}
       className={({ isActive }) =>
-        clsx(
-          'group flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors',
-          isActive
-            ? 'bg-surface2 text-text'
-            : 'text-muted hover:bg-surface2 hover:text-text'
-        )
+        clsx('sb-item', isActive && 'on')
       }
     >
-      <Icon size={16} className="shrink-0" />
-      <span className="flex-1 truncate">{label}</span>
+      <Icon size={15} />
+      <span className="sb-item-label">{label}</span>
       {badge !== undefined && badge > 0 && (
-        <span className="text-xs text-muted tabular-nums">{badge}</span>
+        <span className="sb-item-badge tabular">{badge}</span>
       )}
     </NavLink>
   );
@@ -68,11 +71,13 @@ export default function Sidebar() {
   const { data: openNotes = [] } = useNotes({ done: false });
   const { data: allTodos = [] } = useTodos();
   const { data: reviewQueue = [] } = useReviewQueue();
-  const { setSidebarOpen, setPaletteOpen, openQuickAdd, theme, setTheme } = useUI();
+  const { setSidebarOpen, setPaletteOpen, openQuickAdd, theme, setTheme } =
+    useUI();
   const { signOut, user } = useAuth();
   const createProject = useCreateProject();
   const createNote = useCreateNote();
   const navigate = useNavigate();
+  const location = useLocation();
   const [creating, setCreating] = useState(false);
 
   const openTodosCount = allTodos.filter((t) => t.status !== 'done').length;
@@ -103,74 +108,70 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="h-full w-[260px] bg-surface border-r border-border flex flex-col">
-      {/* Top: brand + close (mobile) */}
-      <div className="px-3 py-3 flex items-center gap-2 border-b border-border">
-        <div className="w-7 h-7 rounded-md bg-accent/15 flex items-center justify-center shrink-0">
-          <Brain size={15} className="text-accent" />
+    <aside className="sidebar">
+      <div className="sb-brand">
+        <div className="sb-brand-mark">
+          <Brain size={15} />
         </div>
-        <span className="font-semibold tracking-tight">Brainly</span>
+        <span className="sb-brand-name">Brainly</span>
         <button
+          className="sb-close"
           onClick={closeOnMobile}
-          className="ml-auto md:hidden p-1.5 rounded-md hover:bg-surface2"
           aria-label="Sluit sidebar"
         >
-          <X size={16} />
+          <X size={15} />
         </button>
       </div>
 
-      {/* Search trigger */}
       <button
+        className="sb-search"
         onClick={() => {
           setPaletteOpen(true);
           closeOnMobile();
         }}
-        className="mx-3 mt-3 flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm text-muted bg-surface2/60 hover:bg-surface2 transition-colors"
       >
-        <Search size={14} />
-        <span className="flex-1 text-left">Snel zoeken</span>
-        <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-bg border border-border">
-          ⌘K
-        </kbd>
+        <Search size={13} />
+        <span>Snel zoeken</span>
+        <kbd className="kbd">⌘K</kbd>
       </button>
 
-      {/* Quick-add row: to-do + note side by side */}
-      <div className="mx-3 mt-1.5 grid grid-cols-2 gap-1.5">
+      <div className="sb-quick">
         <button
+          className="sb-quick-btn"
           onClick={() => {
             openQuickAdd(null);
             closeOnMobile();
           }}
-          className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-accent bg-accent/10 hover:bg-accent/15 transition-colors font-medium min-w-0"
           title="Snelle to-do (T)"
         >
-          <Plus size={12} className="shrink-0" />
-          <span className="flex-1 text-left truncate">To-do</span>
-          <kbd className="text-[9px] font-mono px-1 py-0 rounded bg-bg border border-border text-muted shrink-0">
-            T
-          </kbd>
+          <Plus size={12} />
+          <span>To-do</span>
+          <kbd className="kbd">T</kbd>
         </button>
         <button
+          className="sb-quick-btn"
           onClick={handleQuickNote}
           disabled={createNote.isPending}
-          className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-accent bg-accent/10 hover:bg-accent/15 transition-colors font-medium disabled:opacity-50 min-w-0"
           title="Snelle notitie (N)"
         >
           {createNote.isPending ? (
-            <Loader2 size={12} className="animate-spin shrink-0" />
+            <Loader2 size={12} className="animate-spin" />
           ) : (
-            <Plus size={12} className="shrink-0" />
+            <Plus size={12} />
           )}
-          <span className="flex-1 text-left truncate">Notitie</span>
-          <kbd className="text-[9px] font-mono px-1 py-0 rounded bg-bg border border-border text-muted shrink-0">
-            N
-          </kbd>
+          <span>Notitie</span>
+          <kbd className="kbd">N</kbd>
         </button>
       </div>
 
-      {/* Main nav */}
-      <nav className="px-2 pt-3 space-y-0.5">
-        <NavItem to="/" icon={Star} label="Vandaag" badge={todayCount} onClick={closeOnMobile} />
+      <nav className="sb-nav">
+        <NavItem
+          to="/"
+          icon={Star}
+          label="Vandaag"
+          badge={todayCount}
+          onClick={closeOnMobile}
+        />
         <NavItem to="/agenda" icon={Calendar} label="Agenda" onClick={closeOnMobile} />
         <NavItem
           to="/todos"
@@ -212,90 +213,77 @@ export default function Sidebar() {
         />
       </nav>
 
-      {/* Projects list */}
-      <div className="mt-5 px-2 flex-1 overflow-y-auto min-h-0">
-        <div className="flex items-center justify-between px-1.5 mb-1">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted">
-            Projecten
-          </span>
+      <div className="sb-section">
+        <div className="sb-section-head">
+          <span>Projecten</span>
           <button
+            className="sb-section-add"
             onClick={handleCreateProject}
             disabled={creating}
-            className="p-1 rounded hover:bg-surface2 text-muted hover:text-text disabled:opacity-50"
             aria-label="Nieuw project"
           >
-            {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+            {creating ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
           </button>
         </div>
-        <div className="space-y-0.5">
-          {projects.map((p) => (
-            <NavLink
-              key={p.id}
-              to={`/p/${p.id}`}
-              onClick={closeOnMobile}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm truncate transition-colors',
-                  isActive
-                    ? 'bg-surface2 text-text'
-                    : 'text-muted hover:bg-surface2 hover:text-text'
-                )
-              }
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
-              <span className="truncate">{p.title || 'Untitled'}</span>
-            </NavLink>
-          ))}
+        <div className="sb-list">
+          {projects.map((p) => {
+            const active = location.pathname === `/p/${p.id}`;
+            return (
+              <NavLink
+                key={p.id}
+                to={`/p/${p.id}`}
+                onClick={closeOnMobile}
+                className={clsx('sb-proj', active && 'on')}
+              >
+                <span
+                  className="sb-proj-dot"
+                  style={{ background: projectAccent(p.id) }}
+                />
+                <span className="sb-proj-name">{p.title || 'Untitled'}</span>
+              </NavLink>
+            );
+          })}
           {projects.length === 0 && (
-            <p className="text-xs text-muted px-2 py-1">Nog geen projecten.</p>
+            <p className="muted-text" style={{ fontSize: 12, padding: '4px 10px' }}>
+              Nog geen projecten.
+            </p>
           )}
-        </div>
 
-        {/* Open notes — alles wat nog niet als klaar gemarkeerd is */}
-        {openNotes.length > 0 && (
-          <>
-            <div className="mt-5 flex items-center justify-between px-1.5 mb-1">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted">
-                Open notities
-              </span>
-              {openNotes.length > 10 && (
-                <NavLink
-                  to="/notes"
-                  onClick={closeOnMobile}
-                  className="text-[10px] text-muted hover:text-text"
-                >
-                  alle →
-                </NavLink>
-              )}
-            </div>
-            <div className="space-y-0.5">
+          {openNotes.length > 0 && (
+            <>
+              <div className="sb-section-head" style={{ marginTop: 16 }}>
+                <span>Open notities</span>
+                {openNotes.length > 10 && (
+                  <NavLink
+                    to="/notes"
+                    onClick={closeOnMobile}
+                    className="muted-text"
+                    style={{ fontSize: 10 }}
+                  >
+                    alle →
+                  </NavLink>
+                )}
+              </div>
               {openNotes.slice(0, 10).map((n) => (
                 <NavLink
                   key={n.id}
                   to={n.project_id ? `/p/${n.project_id}/n/${n.id}` : `/n/${n.id}`}
                   onClick={closeOnMobile}
                   className={({ isActive }) =>
-                    clsx(
-                      'flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm truncate transition-colors',
-                      isActive
-                        ? 'bg-surface2 text-text'
-                        : 'text-muted hover:bg-surface2 hover:text-text'
-                    )
+                    clsx('sb-proj', isActive && 'on')
                   }
                 >
-                  <StickyNote size={13} className="shrink-0 opacity-60" />
-                  <span className="truncate">{n.title || 'Untitled'}</span>
+                  <StickyNote size={11} style={{ opacity: 0.6, flexShrink: 0 }} />
+                  <span className="sb-proj-name">{n.title || 'Untitled'}</span>
                 </NavLink>
               ))}
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Bottom: theme toggle + user */}
-      <div className="p-2 border-t border-border space-y-1">
-        {/* Theme switcher */}
-        <div className="flex items-center gap-1 px-1.5 py-1 bg-surface2/50 rounded-md">
+      <div className="sb-footer">
+        <div className="sb-theme">
           {([
             { id: 'light', icon: Sun, label: 'Licht' },
             { id: 'system', icon: Monitor, label: 'Systeem' },
@@ -306,30 +294,23 @@ export default function Sidebar() {
               onClick={() => setTheme(id)}
               title={label}
               aria-label={label}
-              className={clsx(
-                'flex-1 py-1 rounded flex items-center justify-center transition-colors',
-                theme === id
-                  ? 'bg-surface text-text shadow-sm'
-                  : 'text-muted hover:text-text'
-              )}
+              className={clsx('sb-theme-btn', theme === id && 'on')}
             >
               <Icon size={12} />
             </button>
           ))}
         </div>
-
-        {/* User row */}
-        <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted">
-          <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center text-[10px] font-semibold text-accent">
+        <div className="sb-user">
+          <div className="sb-avatar">
             {user?.email?.[0]?.toUpperCase() ?? '?'}
           </div>
-          <span className="flex-1 truncate">{user?.email}</span>
+          <span className="sb-user-mail">{user?.email}</span>
           <button
             onClick={() => signOut()}
-            className="p-1 rounded hover:bg-surface2 hover:text-text"
+            className="sb-logout"
             aria-label="Uitloggen"
           >
-            <LogOut size={13} />
+            <LogOut size={12} />
           </button>
         </div>
       </div>
