@@ -206,7 +206,7 @@ export default function Today() {
       )}
 
       <TodaySection
-        title={dueTodayTimed.length > 0 ? 'Vandaag — verder' : 'Vandaag'}
+        title="Andere to-do's voor vandaag"
         badge={dueTodayUntimed.length}
         empty={
           overdue.length === 0 &&
