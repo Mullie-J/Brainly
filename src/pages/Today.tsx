@@ -352,7 +352,7 @@ function TimelineItem({
         draggable
         onDragStart={(e) => {
           e.dataTransfer.setData('text/plain', t.id);
-          e.dataTransfer.effectAllowed = 'copy';
+          e.dataTransfer.effectAllowed = 'copyMove';
         }}
         title="Sleep naar Top 3"
         {...contextMenuProps}
@@ -460,7 +460,7 @@ function TodoRow({
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData('text/plain', todo.id);
-        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.effectAllowed = 'copyMove';
       }}
       title="Sleep naar Top 3 om vandaag's focus te kiezen"
       {...contextMenuProps}

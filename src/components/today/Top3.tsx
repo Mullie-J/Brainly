@@ -113,10 +113,10 @@ export default function Top3({ date }: { date: Date }) {
 
   function onSlotDragOver(idx: number) {
     return (e: React.DragEvent) => {
-      // Only accept text/plain drops (our todos set this)
-      if (!e.dataTransfer.types.includes('text/plain')) return;
+      // Always preventDefault so the drop event fires. Filtering on
+      // data-type is unreliable across browsers; validate id in onDrop.
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
+      e.dataTransfer.dropEffect = 'move';
       setDragOver(idx);
     };
   }
@@ -308,7 +308,7 @@ function Top3Slot({
         draggable
         onDragStart={(e) => {
           e.dataTransfer.setData('text/plain', t.id);
-          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.effectAllowed = 'copyMove';
         }}
         title="Sleep om volgorde te veranderen"
         onDragOver={onDragOver}
