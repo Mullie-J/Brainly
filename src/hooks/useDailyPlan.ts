@@ -28,7 +28,7 @@ export function useUpsertDailyPlan() {
   return useMutation({
     mutationFn: async (input: {
       date: string;
-      top3_todo_ids?: string[];
+      top3_todo_ids?: (string | null)[];
       shutdown_note?: string | null;
       next_day_top3?: string[];
       day_rating?: number | null;

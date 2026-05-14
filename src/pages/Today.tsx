@@ -67,7 +67,10 @@ export default function Today() {
   const { data: weeklyReview } = useWeeklyReview(weekStart);
   const { data: dailyPlan } = useDailyPlan(todayStr);
   const top3Ids = useMemo(
-    () => new Set(dailyPlan?.top3_todo_ids ?? []),
+    () =>
+      new Set(
+        (dailyPlan?.top3_todo_ids ?? []).filter((x): x is string => !!x)
+      ),
     [dailyPlan?.top3_todo_ids]
   );
 

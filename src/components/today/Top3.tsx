@@ -28,7 +28,20 @@ export default function Top3({ date }: { date: Date }) {
   const updateTodo = useUpdateTodo();
   const [picking, setPicking] = useState(false);
 
-  const topIds = plan?.top3_todo_ids ?? [];
+  // Read as sparse: length 3 with nulls where empty.
+  // Legacy packed arrays (string[]) still load correctly — they just don't
+  // preserve slot positions, but new writes will be sparse from now on.
+  const slots = useMemo<(string | null)[]>(() => {
+    const raw = plan?.top3_todo_ids ?? [];
+    const out: (string | null)[] = [null, null, null];
+    for (let i = 0; i < Math.min(raw.length, MAX_TOP3); i++) {
+      out[i] = raw[i] ?? null;
+    }
+    return out;
+  }, [plan?.top3_todo_ids]);
+
+  const topIdsFilled = slots.filter((x): x is string => !!x);
+
   const todoMap = useMemo(
     () => new Map(allTodos.map((t) => [t.id, t])),
     [allTodos]
@@ -38,44 +51,48 @@ export default function Top3({ date }: { date: Date }) {
     [projects]
   );
 
-  const top3: Todo[] = topIds
-    .map((id) => todoMap.get(id))
-    .filter((t): t is Todo => !!t);
-
-  const pickable = allTodos.filter(
-    (t) => t.status !== 'done' && !topIds.includes(t.id)
+  // Resolved per-slot todos (null when slot empty)
+  const slotTodos: (Todo | null)[] = slots.map((id) =>
+    id ? todoMap.get(id) ?? null : null
   );
 
-  const completed = top3.filter((t) => t.status === 'done').length;
-  const fullyDone = top3.length > 0 && completed === top3.length;
+  const pickable = allTodos.filter(
+    (t) => t.status !== 'done' && !topIdsFilled.includes(t.id)
+  );
+
+  const filledTodos = slotTodos.filter((t): t is Todo => !!t);
+  const completed = filledTodos.filter((t) => t.status === 'done').length;
+  const fullyDone = filledTodos.length > 0 && completed === filledTodos.length;
 
   const [dragOver, setDragOver] = useState<number | null>(null);
 
-  function setTop3(ids: string[]) {
-    upsert.mutate({ date: dateStr, top3_todo_ids: ids });
+  function persistSlots(next: (string | null)[]) {
+    // Trim trailing nulls so we don't bloat storage but keep internal nulls
+    let end = next.length;
+    while (end > 0 && next[end - 1] === null) end--;
+    upsert.mutate({ date: dateStr, top3_todo_ids: next.slice(0, end) });
   }
 
   function add(id: string) {
-    if (topIds.length >= MAX_TOP3) return;
-    setTop3([...topIds, id]);
+    // Find first empty slot
+    const next = [...slots];
+    const empty = next.indexOf(null);
+    if (empty === -1) return;
+    next[empty] = id;
+    persistSlots(next);
   }
 
   function remove(id: string) {
-    setTop3(topIds.filter((x) => x !== id));
+    persistSlots(slots.map((x) => (x === id ? null : x)));
   }
 
-  // Place an id at a specific slot index. Replaces if filled, inserts if empty.
-  // Also de-duplicates: if the id is already elsewhere in the list, remove it.
+  // Place an id at a specific slot index. Sparse: empty slots stay empty,
+  // filled slots get replaced. Dedupes if id was elsewhere.
   function setAtIndex(idx: number, id: string) {
     if (idx < 0 || idx >= MAX_TOP3) return;
-    const filtered = topIds.filter((x) => x !== id);
-    const next: (string | undefined)[] = [
-      filtered[0],
-      filtered[1],
-      filtered[2],
-    ];
+    const next: (string | null)[] = slots.map((x) => (x === id ? null : x));
     next[idx] = id;
-    setTop3(next.filter((x): x is string => !!x).slice(0, MAX_TOP3));
+    persistSlots(next);
   }
 
   function onSlotDragOver(idx: number) {
@@ -118,13 +135,12 @@ export default function Top3({ date }: { date: Date }) {
           <span className="top3-h">Vandaag's Top 3</span>
           <span className="top3-progress">
             <span className="tabular">{completed}</span>
-            <span className="muted-text"> / {top3.length || MAX_TOP3}</span>
+            <span className="muted-text"> / {filledTodos.length || MAX_TOP3}</span>
           </span>
         </div>
         <div className="top3-head-r">
           <div className="top3-dots">
-            {Array.from({ length: MAX_TOP3 }).map((_, i) => {
-              const t = top3[i];
+            {slotTodos.map((t, i) => {
               const cls = !t ? '' : t.status === 'done' ? 'd-done' : 'd-pending';
               return <span key={i} className={clsx('top3-dot', cls)} />;
             })}
@@ -137,13 +153,12 @@ export default function Top3({ date }: { date: Date }) {
       </p>
 
       <div className="top3-slots">
-        {Array.from({ length: MAX_TOP3 }).map((_, i) => {
-          const t = top3[i];
+        {slotTodos.map((t, i) => {
           const isOver = dragOver === i;
           if (!t) {
             return (
               <button
-                key={i}
+                key={`empty-${i}`}
                 onClick={() => setPicking(true)}
                 onDragOver={onSlotDragOver(i)}
                 onDrop={onSlotDrop(i)}
@@ -224,7 +239,7 @@ export default function Top3({ date }: { date: Date }) {
                       add(t.id);
                       setPicking(false);
                     }}
-                    disabled={topIds.length >= MAX_TOP3}
+                    disabled={topIdsFilled.length >= MAX_TOP3}
                     className="palette-item"
                   >
                     <GripVertical size={13} className="palette-icon" />

@@ -100,7 +100,7 @@ export interface DailyPlan {
   id: string;
   user_id: string;
   date: string;                  // YYYY-MM-DD
-  top3_todo_ids: string[];
+  top3_todo_ids: (string | null)[];   // sparse array of length 0-3
   shutdown_note: string | null;
   next_day_top3: string[];
   day_rating: number | null;     // 1..5 self-rating, captured at shutdown
