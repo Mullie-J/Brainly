@@ -86,11 +86,27 @@ export default function Top3({ date }: { date: Date }) {
     persistSlots(slots.map((x) => (x === id ? null : x)));
   }
 
-  // Place an id at a specific slot index. Sparse: empty slots stay empty,
-  // filled slots get replaced. Dedupes if id was elsewhere.
+  // Place an id at a specific slot index.
+  //
+  // Cases:
+  //   - Source in Top 3 + target empty   → MOVE (clear source slot)
+  //   - Source in Top 3 + target filled  → SWAP positions
+  //   - Source not in Top 3 + target empty   → INSERT
+  //   - Source not in Top 3 + target filled  → REPLACE (target's todo
+  //     falls back to the pickable list)
   function setAtIndex(idx: number, id: string) {
     if (idx < 0 || idx >= MAX_TOP3) return;
-    const next: (string | null)[] = slots.map((x) => (x === id ? null : x));
+    const sourceIdx = slots.indexOf(id);
+    if (sourceIdx === idx) return; // dropped on itself, no-op
+    const next = [...slots];
+    if (sourceIdx >= 0 && next[idx]) {
+      // SWAP — put the occupant of target into source's old slot
+      next[sourceIdx] = next[idx];
+    } else if (sourceIdx >= 0) {
+      // MOVE — clear source
+      next[sourceIdx] = null;
+    }
+    // INSERT / REPLACE / final write
     next[idx] = id;
     persistSlots(next);
   }
@@ -289,6 +305,12 @@ function Top3Slot({
           t.status === 'done' && 'top3-slot-done',
           isOver && 'top3-slot-over'
         )}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', t.id);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        title="Sleep om volgorde te veranderen"
         onDragOver={onDragOver}
         onDrop={onDrop}
         {...contextMenuProps}

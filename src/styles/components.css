@@ -663,6 +663,8 @@
 .row[draggable='true']:active { cursor: grabbing; }
 .tl-item[draggable='true'] { cursor: grab; }
 .tl-item[draggable='true']:active { cursor: grabbing; }
+.top3-slot[draggable='true'] { cursor: grab; }
+.top3-slot[draggable='true']:active { cursor: grabbing; }
 .top3-num {
   flex-shrink: 0;
   width: 22px; height: 22px;
