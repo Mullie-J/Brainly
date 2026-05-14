@@ -648,6 +648,21 @@
 .top3-slot-done { background: rgb(var(--emerald) / 0.04); }
 .top3-empty { border-style: dashed; background: transparent; color: rgb(var(--muted)); }
 .top3-empty:hover { border-color: rgb(var(--accent-rgb) / 0.4); color: rgb(var(--text)); }
+
+/* Drag-and-drop feedback: source rows in lists get a subtle indicator,
+   active drop target glows in accent. */
+.top3.top3-drag { border-color: rgb(var(--accent-rgb) / 0.45); }
+.top3.top3-drag .top3-slot:not(.top3-slot-over) { opacity: 0.5; }
+.top3-slot-over {
+  border-color: var(--accent) !important;
+  border-style: solid !important;
+  background: var(--accent-soft) !important;
+  box-shadow: 0 0 0 4px rgb(var(--accent-rgb) / 0.14);
+}
+.row[draggable='true'] { cursor: grab; }
+.row[draggable='true']:active { cursor: grabbing; }
+.tl-item[draggable='true'] { cursor: grab; }
+.tl-item[draggable='true']:active { cursor: grabbing; }
 .top3-num {
   flex-shrink: 0;
   width: 22px; height: 22px;

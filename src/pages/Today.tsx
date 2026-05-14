@@ -27,6 +27,7 @@ import { useTodos, useUpdateTodo } from '@/hooks/useTodos';
 import { useProjects } from '@/hooks/useProjects';
 import { useUI } from '@/store/ui';
 import { currentWeekStart, useWeeklyReview } from '@/hooks/useWeeklyReview';
+import { useDailyPlan } from '@/hooks/useDailyPlan';
 import { useTodoContextMenu } from '@/hooks/useTodoContextMenu';
 import PriorityBadge from '@/components/todo/PriorityBadge';
 import Top3 from '@/components/today/Top3';
@@ -61,8 +62,14 @@ export default function Today() {
 
   const today = useMemo(() => new Date(), []);
   const greeting = greetingForHour(today.getHours());
+  const todayStr = format(today, 'yyyy-MM-dd');
   const weekStart = currentWeekStart();
   const { data: weeklyReview } = useWeeklyReview(weekStart);
+  const { data: dailyPlan } = useDailyPlan(todayStr);
+  const top3Ids = useMemo(
+    () => new Set(dailyPlan?.top3_todo_ids ?? []),
+    [dailyPlan?.top3_todo_ids]
+  );
 
   const dow = getDay(today);
   const isFridayOrLater = dow === 5 || dow === 6 || dow === 0;
@@ -77,10 +84,13 @@ export default function Today() {
     [projects]
   );
 
+  // Hide todos that are already in the Top 3 — they render in the
+  // Top 3 card up top, no need to repeat them below.
   const overdue = todos
     .filter(
       (t) =>
         t.status !== 'done' &&
+        !top3Ids.has(t.id) &&
         t.due_date &&
         isPast(parseISO(t.due_date)) &&
         !isToday(parseISO(t.due_date))
@@ -93,7 +103,10 @@ export default function Today() {
 
   const dueToday = todos.filter(
     (t) =>
-      t.status !== 'done' && t.due_date && isToday(parseISO(t.due_date))
+      t.status !== 'done' &&
+      !top3Ids.has(t.id) &&
+      t.due_date &&
+      isToday(parseISO(t.due_date))
   );
   // Split into timed (timeline) and untimed (list)
   const dueTodayTimed = dueToday
@@ -333,6 +346,12 @@ function TimelineItem({
           isNow && 'tl-now',
           isNext && 'tl-next'
         )}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', t.id);
+          e.dataTransfer.effectAllowed = 'copy';
+        }}
+        title="Sleep naar Top 3"
         {...contextMenuProps}
       >
         <div className="tl-time">
@@ -435,6 +454,12 @@ function TodoRow({
     <>
     <div
       className={clsx('row', todo.status === 'done' && 'row-done')}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', todo.id);
+        e.dataTransfer.effectAllowed = 'copy';
+      }}
+      title="Sleep naar Top 3 om vandaag's focus te kiezen"
       {...contextMenuProps}
     >
       <button
