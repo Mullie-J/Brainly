@@ -24,9 +24,9 @@ export default {
         zinc: 'rgb(var(--zinc) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-        serif: ['Newsreader', 'ui-serif', 'Georgia', 'serif'],
+        sans: ['Inter Tight', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        serif: ['Inter Tight', 'ui-serif', 'Georgia', 'serif'],
       },
       borderRadius: {
         DEFAULT: 'var(--radius)',

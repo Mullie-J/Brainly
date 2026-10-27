@@ -1,6 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Brain,
   ListTodo,
   Star,
   Plus,
@@ -19,6 +18,7 @@ import {
   ClipboardList,
   BarChart3,
 } from 'lucide-react';
+import MulMark from './MulMark';
 import { useReviewQueue } from '@/hooks/useNotes';
 import { clsx } from 'clsx';
 import { useProjects, useCreateProject } from '@/hooks/useProjects';
@@ -111,10 +111,10 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sb-brand">
-        <div className="sb-brand-mark">
-          <Brain size={15} />
-        </div>
-        <span className="sb-brand-name">Brainly</span>
+        <MulMark size={22} variant="primary" blockSize={28} />
+        <span className="sb-brand-name" style={{ letterSpacing: '-0.025em', fontWeight: 600 }}>
+          Brainly
+        </span>
         <button
           className="sb-close"
           onClick={closeOnMobile}

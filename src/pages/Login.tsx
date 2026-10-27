@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Brain, Mail, ArrowRight, Loader2, Lock, KeyRound } from 'lucide-react';
+import { Mail, ArrowRight, Loader2, Lock, KeyRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import MulMark from '@/components/MulMark';
 
 export default function Login() {
   const { signInWithMagicLink, signInWithPassword, verifyEmailOtp } = useAuth();
@@ -55,15 +56,32 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-8 justify-center">
-          <div className="w-9 h-9 rounded-lg bg-accent/15 flex items-center justify-center">
-            <Brain size={20} className="text-accent" />
-          </div>
-          <span className="font-semibold text-lg tracking-tight">Brainly</span>
+        <p className="eyebrow mb-6" style={{ margin: '0 0 24px' }}>
+          Inloggen — magic link
+        </p>
+
+        <div className="flex items-center gap-3 mb-10">
+          <MulMark size={28} variant="primary" blockSize={38} />
+          <span
+            className="text-2xl"
+            style={{ fontWeight: 600, letterSpacing: '-0.025em' }}
+          >
+            Brainly
+          </span>
         </div>
 
-        <h1 className="text-2xl font-semibold mb-2 tracking-tight">Welkom terug</h1>
-        <p className="text-muted mb-8 text-sm">
+        <h1
+          className="mb-2"
+          style={{
+            fontSize: 'clamp(26px, 4vw, 32px)',
+            fontWeight: 600,
+            letterSpacing: '-0.025em',
+            lineHeight: 1.1,
+          }}
+        >
+          Welkom terug
+        </h1>
+        <p className="text-muted mb-8 text-sm" style={{ maxWidth: '32ch' }}>
           Voer je e-mail in. We sturen je een 6-cijferige code én een magic link.
         </p>
 
@@ -105,14 +123,15 @@ export default function Login() {
                   required
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="123456"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-surface border border-border text-base font-mono tracking-[0.3em] text-center focus:border-accent transition-colors"
+                  placeholder="000000"
+                  className="w-full pl-9 pr-3 py-2.5 rounded bg-surface border border-border text-base font-mono tabular tracking-[0.3em] text-center focus:border-accent transition-colors"
                 />
               </div>
               <button
                 type="submit"
                 disabled={status === 'verifying' || code.length < 6}
-                className="w-full py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded bg-accent text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+                style={{ color: 'var(--accent-fg)' }}
               >
                 {status === 'verifying' ? (
                   <Loader2 size={16} className="animate-spin" />
@@ -157,7 +176,8 @@ export default function Login() {
             <button
               type="submit"
               disabled={status === 'sending'}
-              className="w-full py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded bg-accent text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+              style={{ color: 'var(--accent-fg)' }}
             >
               {status === 'sending' ? (
                 <Loader2 size={16} className="animate-spin" />
